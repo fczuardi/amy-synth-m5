@@ -7,25 +7,16 @@ constexpr uint32_t SERIAL_BAUD = 115200;
 constexpr uint32_t STATUS_LOG_INTERVAL_MS = 1000;
 constexpr uint32_t NOTE_ON_INTERVAL_MS = 2500;
 constexpr uint32_t NOTE_DURATION_MS = 900;
-constexpr uint8_t AMY_SYNTH_ID = 1;
-constexpr uint8_t AMY_PATCH_JUNO = 1;
-constexpr uint8_t AMY_POLYPHONY = 4;
-constexpr uint8_t TEST_NOTES[] = {48, 52, 55, 60};
-constexpr size_t AUDIO_BUFFER_COUNT = 4;
+constexpr float TEST_FREQUENCIES_HZ[] = {220.0f, 330.0f, 440.0f, 660.0f};
 constexpr uint8_t AUDIO_CHANNEL = 0;
 
 uint32_t lastStatusLogAtMs = 0;
 uint32_t lastNoteOnAtMs = 0;
 uint32_t currentNoteStartedAtMs = 0;
-uint32_t renderedBlockCount = 0;
-uint32_t queuedBlockCount = 0;
-uint32_t droppedBlockCount = 0;
-size_t nextNoteIndex = 0;
-size_t nextAudioBufferIndex = 0;
-bool amyStarted = false;
+size_t nextFrequencyIndex = 0;
 bool noteActive = false;
-
-int16_t audioBuffers[AUDIO_BUFFER_COUNT][AMY_BLOCK_SIZE * AMY_NCHANS];
+bool muted = false;
+float activeFrequencyHz = 0.0f;
 
 void drawScreen(const char* stateLabel) {
   M5.Display.fillScreen(TFT_BLACK);
@@ -39,13 +30,11 @@ void drawScreen(const char* stateLabel) {
   M5.Display.println();
   M5.Display.printf("Board id: %d\n", static_cast<int>(M5.getBoard()));
   M5.Display.println("Target: Core Gray");
-  M5.Display.println("Mode: local PCM sound");
-  M5.Display.printf("AMY: %u Hz %u frames\n", AMY_SAMPLE_RATE, AMY_BLOCK_SIZE);
-  M5.Display.print("AMY: ");
-  M5.Display.println(amyStarted ? "started" : "not started");
-  M5.Display.printf("Rendered: %lu\n", static_cast<unsigned long>(renderedBlockCount));
-  M5.Display.printf("Queued: %lu\n", static_cast<unsigned long>(queuedBlockCount));
-  M5.Display.printf("Dropped: %lu\n", static_cast<unsigned long>(droppedBlockCount));
+  M5.Display.println("Mode: M5 speaker tone");
+  M5.Display.println("AMY: bypassed");
+  M5.Display.printf("Frequency: %.2f Hz\n", activeFrequencyHz);
+  M5.Display.print("Muted: ");
+  M5.Display.println(muted ? "yes" : "no");
   M5.Display.print("Note: ");
   M5.Display.println(noteActive ? "on" : "off");
   M5.Display.print("State: ");
@@ -54,108 +43,57 @@ void drawScreen(const char* stateLabel) {
 
 void configureSpeaker() {
   auto speakerConfig = M5.Speaker.config();
-  speakerConfig.sample_rate = AMY_SAMPLE_RATE;
-  speakerConfig.stereo = true;
+  // Keep the Core Gray's default mono DAC speaker path and output rate.
   M5.Speaker.config(speakerConfig);
   M5.Speaker.begin();
-  M5.Speaker.setVolume(96);
+  M5.Speaker.setVolume(255);
   M5.Speaker.setAllChannelVolume(255);
 }
 
-void startAmyForPcm() {
-  amy_config_t amyConfig = amy_default_config();
+void toneOn(float frequencyHz) {
+  if (muted) {
+    return;
+  }
 
-  // AMY renders PCM blocks; M5Unified owns the Core Gray speaker output.
-  amyConfig.audio = AMY_AUDIO_IS_NONE;
-  amyConfig.midi = AMY_MIDI_IS_NONE;
-  amyConfig.midi_uart = -1;
-  amyConfig.midi_in = -1;
-  amyConfig.midi_out = -1;
-  amyConfig.features.startup_bleep = 0;
-  amyConfig.features.default_synths = 1;
-  amyConfig.features.audio_in = 0;
-  amyConfig.platform.multithread = 1;
-  amyConfig.platform.multicore = 0;
-
-  amy_start(amyConfig);
-  amyStarted = true;
-
-  amy_event event = amy_default_event();
-  event.synth = AMY_SYNTH_ID;
-  event.patch_number = AMY_PATCH_JUNO;
-  event.num_voices = AMY_POLYPHONY;
-  amy_add_event(&event);
-}
-
-void noteOn(uint8_t midiNote) {
-  amy_event event = amy_default_event();
-  event.synth = AMY_SYNTH_ID;
-  event.midi_note = midiNote;
-  event.velocity = 0.7f;
-  amy_add_event(&event);
-
+  M5.Speaker.tone(frequencyHz, NOTE_DURATION_MS, AUDIO_CHANNEL, true);
+  activeFrequencyHz = frequencyHz;
   noteActive = true;
   currentNoteStartedAtMs = millis();
-  Serial.printf("amy: note_on midi_note=%u\n", midiNote);
+  Serial.printf("m5speaker: tone_on frequency_hz=%.2f\n", frequencyHz);
 }
 
-void noteOff(uint8_t midiNote) {
-  amy_event event = amy_default_event();
-  event.synth = AMY_SYNTH_ID;
-  event.midi_note = midiNote;
-  event.velocity = 0.0f;
-  amy_add_event(&event);
-
+void toneOff() {
+  M5.Speaker.stop(AUDIO_CHANNEL);
+  activeFrequencyHz = 0.0f;
   noteActive = false;
-  Serial.printf("amy: note_off midi_note=%u\n", midiNote);
+  Serial.println("m5speaker: tone_off");
+}
+
+void toggleMute() {
+  muted = !muted;
+  if (muted) {
+    toneOff();
+  } else {
+    lastNoteOnAtMs = millis() - NOTE_ON_INTERVAL_MS;
+  }
+
+  Serial.printf("m5speaker: muted=%s\n", muted ? "true" : "false");
+  drawScreen(muted ? "muted" : "running");
 }
 
 void updateTestNotes() {
   const uint32_t nowMs = millis();
 
   if (noteActive && nowMs - currentNoteStartedAtMs >= NOTE_DURATION_MS) {
-    const size_t activeNoteIndex =
-        (nextNoteIndex + (sizeof(TEST_NOTES) / sizeof(TEST_NOTES[0])) - 1) %
-        (sizeof(TEST_NOTES) / sizeof(TEST_NOTES[0]));
-    noteOff(TEST_NOTES[activeNoteIndex]);
+    toneOff();
   }
 
   if (!noteActive && nowMs - lastNoteOnAtMs >= NOTE_ON_INTERVAL_MS) {
     lastNoteOnAtMs = nowMs;
-    noteOn(TEST_NOTES[nextNoteIndex]);
-    nextNoteIndex = (nextNoteIndex + 1) % (sizeof(TEST_NOTES) / sizeof(TEST_NOTES[0]));
-  }
-}
-
-void queueAmyAudioBlock(int16_t* samples) {
-  if (samples == nullptr) {
-    return;
-  }
-
-  renderedBlockCount++;
-
-  if (M5.Speaker.isPlaying(AUDIO_CHANNEL) >= 2) {
-    droppedBlockCount++;
-    return;
-  }
-
-  int16_t* outputBuffer = audioBuffers[nextAudioBufferIndex];
-  memcpy(outputBuffer,
-         samples,
-         sizeof(int16_t) * AMY_BLOCK_SIZE * AMY_NCHANS);
-
-  const bool queued = M5.Speaker.playRaw(outputBuffer,
-                                         AMY_BLOCK_SIZE * AMY_NCHANS,
-                                         AMY_SAMPLE_RATE,
-                                         true,
-                                         1,
-                                         AUDIO_CHANNEL,
-                                         false);
-  if (queued) {
-    queuedBlockCount++;
-    nextAudioBufferIndex = (nextAudioBufferIndex + 1) % AUDIO_BUFFER_COUNT;
-  } else {
-    droppedBlockCount++;
+    toneOn(TEST_FREQUENCIES_HZ[nextFrequencyIndex]);
+    nextFrequencyIndex =
+        (nextFrequencyIndex + 1) %
+        (sizeof(TEST_FREQUENCIES_HZ) / sizeof(TEST_FREQUENCIES_HZ[0]));
   }
 }
 }  // namespace
@@ -169,40 +107,31 @@ void setup() {
   M5.Display.setRotation(1);
 
   Serial.println();
-  Serial.println("AMY Core Gray local PCM sound probe");
+  Serial.println("Core Gray M5Unified speaker tone baseline");
   Serial.printf("board_id=%d\n", static_cast<int>(M5.getBoard()));
-  Serial.printf("amy: sample_rate=%u block_size=%u channels=%u\n",
-                AMY_SAMPLE_RATE,
-                AMY_BLOCK_SIZE,
-                AMY_NCHANS);
+  Serial.println("amy: bypassed for speaker baseline");
 
   configureSpeaker();
-  drawScreen("starting AMY");
-  startAmyForPcm();
-
-  Serial.println("amy: started with AMY_AUDIO_IS_NONE, routing PCM through M5Unified");
-  drawScreen("AMY started");
+  drawScreen("speaker ready");
 }
 
 void loop() {
   M5.update();
-  updateTestNotes();
-
-  if (amyStarted && M5.Speaker.isPlaying(AUDIO_CHANNEL) < 2) {
-    queueAmyAudioBlock(amy_update());
+  if (M5.BtnA.wasPressed()) {
+    toggleMute();
   }
+
+  updateTestNotes();
 
   const uint32_t nowMs = millis();
   if (nowMs - lastStatusLogAtMs >= STATUS_LOG_INTERVAL_MS) {
     lastStatusLogAtMs = nowMs;
-    Serial.printf("status: uptime_ms=%lu amy_started=%s rendered=%lu queued=%lu dropped=%lu speaker_queue=%u note_active=%s\n",
+    Serial.printf("status: uptime_ms=%lu amy_bypassed=true muted=%s speaker_queue=%u note_active=%s frequency_hz=%.2f\n",
                   static_cast<unsigned long>(nowMs),
-                  amyStarted ? "true" : "false",
-                  static_cast<unsigned long>(renderedBlockCount),
-                  static_cast<unsigned long>(queuedBlockCount),
-                  static_cast<unsigned long>(droppedBlockCount),
+                  muted ? "true" : "false",
                   static_cast<unsigned>(M5.Speaker.isPlaying(AUDIO_CHANNEL)),
-                  noteActive ? "true" : "false");
+                  noteActive ? "true" : "false",
+                  activeFrequencyHz);
     drawScreen("running");
   }
 }

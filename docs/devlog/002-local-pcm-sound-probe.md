@@ -116,3 +116,46 @@ status: uptime_ms=30000 amy_started=true rendered=4822 queued=4822 dropped=0 spe
 
 That makes the multithread setting the current known-good path for this PCM
 bridge probe.
+
+The first sound-quality adjustment stopped overriding the Core Gray speaker
+configuration as stereo 44.1 kHz output. M5Unified's detected Core Gray default
+uses the built-in mono DAC speaker path, so the probe now preserves that board
+configuration and only feeds AMY's stereo PCM block as stereo input to
+`playRaw()`. On hardware this sounded less noisy and more recognizable, though
+still quieter than desired. The next conservative loudness step raises the
+M5Unified master volume to 255 while leaving the board-specific speaker
+magnification unchanged.
+
+The volume increase did not make an audible difference. The notes were
+recognizable, but there were still clicks and interference. The next hypothesis
+is that queuing each 256-frame AMY block as a separate `playRaw()` clip creates
+audible boundaries. The bridge now aggregates eight AMY blocks into each
+M5Unified raw audio chunk, reducing the clip-boundary rate from about 172 per
+second to about 21 per second.
+
+To separate bridge quality from patch complexity, the probe also switched from
+AMY's default synth/Juno-style patch routing to a single raw oscillator. The
+firmware now disables default synths and cycles one `SINE` oscillator through
+220, 330, 440, and 660 Hz. A clean result should sound like plain test tones,
+not a musical patch.
+
+The sine probe made the pitch sequence clearer, but the speaker still produced
+radio-like interference or artifacts while the tones were otherwise
+recognizable. That means the next isolation step is to remove AMY from the
+runtime path entirely. The current bench firmware starts only M5Unified's
+speaker support and cycles the same frequencies with `M5.Speaker.tone()`. If
+this direct speaker baseline is clean, the artifact is likely in the AMY PCM to
+`playRaw()` bridge. If this baseline is also noisy, the limit is more likely in
+the Core Gray built-in speaker/DAC/power path or the local bench setup.
+
+Because these repeated test tones are intrusive during bench work, the baseline
+also adds a simple mute control. Pressing Button A toggles sound on and off,
+stops any tone currently playing, and logs the mute state over serial. Unmuting
+allows the next tone to start immediately so the same firmware can remain on
+the device while listening conditions change.
+
+The direct M5Unified speaker baseline was clean on hardware: the radio-like
+interference heard during the AMY sine probe disappeared. That makes the Core
+Gray built-in speaker path usable and shifts the next investigation back to the
+AMY PCM bridge, especially how `amy_update()` blocks are handed to
+`M5.Speaker.playRaw()`.
