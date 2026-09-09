@@ -25,6 +25,13 @@ Arduino-ESP32 2.x-era framework used by the existing baseline projects, so this
 probe uses the community `pioarduino/platform-espressif32` stable package to
 test against an Arduino-ESP32 3.x-compatible toolchain.
 
+In PlatformIO, the `platform` line is not just a board-family label. It selects
+a bundle that includes the Arduino-ESP32 core, the ESP-IDF driver layer under
+that Arduino core, and the compiler/toolchain. AMY's ESP32 code expects a newer
+I2S driver API than the stable baseline projects currently use. The Core Gray
+itself can drive its built-in speaker through the ESP32 audio hardware, but AMY
+still needs a software toolchain that contains the matching I2S driver headers.
+
 ## Boundaries
 
 This slice does not attempt to:
@@ -74,6 +81,12 @@ enough to show the real mismatch:
 Switching only the PlatformIO platform to `pioarduino/platform-espressif32`
 stable pulled Arduino-ESP32 `3.3.11`, ESP-IDF libraries
 `5.5.5+sha.b774170ff46`, and cleared the missing I2S driver header.
+
+This does not mean the existing BLE MIDI and monophonic baseline projects
+should be migrated immediately. Their older official PlatformIO platform is
+proven for the current showcases. The newer community-maintained platform is a
+local requirement of this AMY probe until a separate migration slice proves that
+the rest of the ecosystem benefits from the same update.
 
 The successful command was:
 
