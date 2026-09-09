@@ -74,7 +74,7 @@ void startAmyForPcm() {
   amyConfig.features.startup_bleep = 0;
   amyConfig.features.default_synths = 1;
   amyConfig.features.audio_in = 0;
-  amyConfig.platform.multithread = 0;
+  amyConfig.platform.multithread = 1;
   amyConfig.platform.multicore = 0;
 
   amy_start(amyConfig);

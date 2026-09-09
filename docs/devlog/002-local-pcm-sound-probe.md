@@ -97,3 +97,22 @@ The serial log also showed a UART driver error. The probe does not use MIDI
 input yet, so the firmware now explicitly keeps AMY MIDI disabled and clears
 the ESP32 default `midi_uart` value to `-1`. That keeps this slice focused on
 local PCM output instead of starting an unused UART MIDI path.
+
+That was not sufficient by itself. AMY's ESP32 no-multithread update path calls
+`esp_poll_midi()` unconditionally from `amy_update_tasks()`, even when MIDI mode
+is disabled. The probe now leaves AMY rendering in multithread mode while keeping
+multicore rendering off. That avoids the unconditional UART poll and may also
+make audio block production steadier for the M5Unified queue.
+
+The follow-up monitor run confirmed that the UART error flood stopped. The
+status logs showed AMY still running, notes cycling, the speaker queue holding
+at two blocks, and no dropped audio blocks:
+
+```text
+status: uptime_ms=3000 amy_started=true rendered=373 queued=373 dropped=0 speaker_queue=2 note_active=true
+status: uptime_ms=10000 amy_started=true rendered=1525 queued=1525 dropped=0 speaker_queue=2 note_active=true
+status: uptime_ms=30000 amy_started=true rendered=4822 queued=4822 dropped=0 speaker_queue=2 note_active=false
+```
+
+That makes the multithread setting the current known-good path for this PCM
+bridge probe.
