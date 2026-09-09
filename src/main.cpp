@@ -67,6 +67,10 @@ void startAmyForPcm() {
 
   // AMY renders PCM blocks; M5Unified owns the Core Gray speaker output.
   amyConfig.audio = AMY_AUDIO_IS_NONE;
+  amyConfig.midi = AMY_MIDI_IS_NONE;
+  amyConfig.midi_uart = -1;
+  amyConfig.midi_in = -1;
+  amyConfig.midi_out = -1;
   amyConfig.features.startup_bleep = 0;
   amyConfig.features.default_synths = 1;
   amyConfig.features.audio_in = 0;

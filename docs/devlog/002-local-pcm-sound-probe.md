@@ -92,3 +92,8 @@ Gray speaker through M5Unified. The next risk is continuity and clarity: the
 current loop only queues a block when the M5Unified channel has space, so gaps,
 drops, or queue starvation are expected. A follow-up slice should focus on
 steady audio buffering before adding BLE, contracts, or musical controls.
+
+The serial log also showed a UART driver error. The probe does not use MIDI
+input yet, so the firmware now explicitly keeps AMY MIDI disabled and clears
+the ESP32 default `midi_uart` value to `-1`. That keeps this slice focused on
+local PCM output instead of starting an unused UART MIDI path.
