@@ -18,3 +18,7 @@ adapter is designed.
 ```bash
 pio run
 ```
+
+This has been build-validated and boot-validated on hardware. After upload and
+monitoring, both the screen and serial logs reported AMY started successfully in
+no-audio mode.

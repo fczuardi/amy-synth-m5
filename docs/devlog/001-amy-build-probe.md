@@ -49,6 +49,7 @@ Hardware target, after a successful build:
 
 ```bash
 pio run --target upload
+pio device monitor
 ```
 
 Expected hardware observation for this slice is only that the firmware boots,
@@ -91,3 +92,23 @@ Total image size: 892763 bytes
 This validates the narrow dependency/build question. The next risk is runtime
 hardware behavior: whether the firmware boots reliably on the Core Gray with
 this newer Arduino toolchain before any sound-output path is adapted.
+
+## Hardware Observation
+
+The runtime boot check also passed on the M5Stack Core Gray.
+
+After:
+
+```bash
+pio run --target upload
+pio device monitor
+```
+
+the screen showed the AMY probe status and the serial log reported
+`amy_started=true`. No sound was expected or attempted because AMY is still
+running with `AMY_AUDIO_IS_NONE`.
+
+That closes this first slice: AMY 1.2.108 can be included, linked, started, and
+kept alive in the Arduino loop on the Core Gray when using the newer
+`pioarduino/platform-espressif32` toolchain. The next slice can focus on a
+local sound path.
