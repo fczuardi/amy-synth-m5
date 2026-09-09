@@ -8,17 +8,16 @@ other related projects in this young ecosystem of experimentation.
 Later this can graduate to a more organized package, or be renamed, if the
 probing and experimentation shows potential.
 
-## Current Slice
+## Current State
 
-The first slice is an AMY dependency and build probe for the M5Stack Core Gray.
-It initializes M5Unified and starts AMY in no-audio mode so dependency,
-toolchain, link, flash, and RAM friction are visible before any sound-output
-adapter is designed.
+The first slice validated that AMY builds, uploads, boots, and reports
+`amy_started=true` on the M5Stack Core Gray.
+
+The current slice routes AMY-rendered signed 16-bit stereo PCM blocks through
+`M5.Speaker.playRaw()` while AMY remains in `AMY_AUDIO_IS_NONE` mode. This keeps
+the Core Gray speaker path owned by M5Unified and avoids guessing direct I2S
+pins before local sound is proven.
 
 ```bash
 pio run
 ```
-
-This has been build-validated and boot-validated on hardware. After upload and
-monitoring, both the screen and serial logs reported AMY started successfully in
-no-audio mode.
