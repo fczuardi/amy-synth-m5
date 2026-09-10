@@ -32,6 +32,9 @@ future umbrella showcase tests whether the API is stable enough to publish.
 - ignores outgoing commands until `begin()` establishes that routing metadata;
 - keeps the current global bend value for diagnostics.
 
+`AmyPitchBend` owns the pure MIDI-to-AMY pitch-bend mapping used by
+`AmyRuntime` and covered by native tests.
+
 `AmySynthSlot` owns a thin AMY musical-control slot:
 
 - configures one AMY synth slot;
@@ -76,3 +79,12 @@ package does not currently declare that dependency in `library.json` because
 the sibling repo is a package host whose Git root is not itself a PlatformIO
 package. Until a registry, archive, or subpackage distribution path is chosen,
 consumers must provide `packages/monophonic-instrument` explicitly.
+
+## Tests
+
+```sh
+pio test -e native
+```
+
+The native tests currently cover pure pitch-bend clamping and conversion. The
+AMY/M5 speaker path remains covered by firmware builds and hardware validation.

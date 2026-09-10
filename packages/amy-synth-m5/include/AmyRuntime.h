@@ -16,9 +16,6 @@ class AmyRuntime {
   uint8_t controlSynthId() const;
 
  private:
-  static int16_t clampedPitchBend(int16_t value);
-  static float pitchBendOctaves(int16_t value);
-
   int16_t globalPitchBend_ = 0;
   uint8_t controlSynthId_ = 0;
   bool begun_ = false;

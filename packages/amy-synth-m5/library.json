@@ -12,6 +12,7 @@
   "platforms": "espressif32",
   "headers": [
     "AmyRuntime.h",
+    "AmyPitchBend.h",
     "AmySynthSlot.h",
     "AmyMonophonicInstrumentSink.h",
     "AmyM5SpeakerBridge.h",
