@@ -13,6 +13,13 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
+      - name: Check out monophonic-instrument package host
+        uses: actions/checkout@v6
+        with:
+          repository: fczuardi/monophonic-instrument
+          ref: 9b558750a0a43432705de6d8d31ee8a16f209310
+          path: deps/monophonic-instrument
+
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -22,7 +29,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: .platformio-home
-          key: platformio-amy-synth-m5-${{ runner.os }}-${{ hashFiles('packages/amy-synth-m5/library.json', 'ci/consumers/amy-synth-m5/platformio.ini', 'ci/consumers/amy-synth-m5/src/main.cpp') }}
+          key: platformio-amy-synth-m5-${{ runner.os }}-${{ hashFiles('packages/amy-synth-m5/library.json', 'ci/consumers/amy-synth-m5/platformio.ini', 'ci/consumers/amy-synth-m5/src/main.cpp', 'deps/monophonic-instrument/packages/monophonic-instrument/library.json') }}
           restore-keys: |
             platformio-amy-synth-m5-${{ runner.os }}-
 
