@@ -3,7 +3,7 @@
 
 #include "AmyAudioActivityGate.h"
 #include "AmyM5SpeakerBridge.h"
-#include "AmyPerformanceAdapter.h"
+#include "AmyMonophonicInstrumentSink.h"
 #include "AmyRuntime.h"
 #include "AmySynthSlot.h"
 #include "BleMidiInput.h"
@@ -19,7 +19,7 @@ AmyAudioActivityGate audioGate(amyBridge);
 AmyRuntime amyRuntime;
 AmySynthSlot synthSlot;
 BleMidiInput bleMidiInput;
-AmyPerformanceAdapter amyPerformance(amyRuntime, synthSlot, audioGate);
+AmyMonophonicInstrumentSink amyInstrumentSink(amyRuntime, synthSlot, audioGate);
 
 uint32_t lastStatusLogAtMs = 0;
 
@@ -125,13 +125,13 @@ void logStatus() {
                 static_cast<unsigned long>(amyBridge.queueBlockedCount()),
                 static_cast<unsigned>(amyBridge.speakerQueueDepth()),
                 synthSlot.patchNumber(),
-                amyPerformance.pitchBend(),
-                amyPerformance.noteActive() ? "true" : "false");
+                amyInstrumentSink.pitchBend(),
+                amyInstrumentSink.noteActive() ? "true" : "false");
 }
 
 void updateAudioBridge() {
   const bool wasAwake = audioGate.awake();
-  const bool isAwake = audioGate.update(amyPerformance.noteActive());
+  const bool isAwake = audioGate.update(amyInstrumentSink.noteActive());
   if (wasAwake && !isAwake) {
     Serial.println("amy_audio: idle");
   }
@@ -158,7 +158,7 @@ void setup() {
   amyRuntime.begin(AMY_SYNTH_ID);
   synthSlot.begin(AMY_SYNTH_ID, AMY_MONO_VOICES, INITIAL_JUNO_PATCH);
 
-  bleMidiInput.setInstrumentEventSink(&amyPerformance);
+  bleMidiInput.setInstrumentEventSink(&amyInstrumentSink);
   bleMidiInput.setDiagnosticSink(&bleDiagnostics);
   bleMidiInput.begin();
 }
@@ -169,7 +169,7 @@ void loop() {
   updateAudioBridge();
 
   if (M5.BtnA.wasPressed()) {
-    amyPerformance.panic();
+    amyInstrumentSink.panic();
     Serial.println("amy_midi: panic reason=button_a");
   }
 

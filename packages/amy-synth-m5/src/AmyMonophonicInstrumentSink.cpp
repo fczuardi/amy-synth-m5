@@ -1,6 +1,6 @@
-#include "AmyPerformanceAdapter.h"
+#include "AmyMonophonicInstrumentSink.h"
 
-AmyPerformanceAdapter::AmyPerformanceAdapter(
+AmyMonophonicInstrumentSink::AmyMonophonicInstrumentSink(
     AmyRuntime& runtime,
     AmySynthSlot& synthSlot,
     AmyAudioActivityGate& audioGate)
@@ -9,7 +9,7 @@ AmyPerformanceAdapter::AmyPerformanceAdapter(
       audioGate_(audioGate) {
 }
 
-void AmyPerformanceAdapter::onNoteEvent(const NoteEvent& event) {
+void AmyMonophonicInstrumentSink::onNoteEvent(const NoteEvent& event) {
   const bool hadActiveNote = notePriority_.isNoteActive();
   const uint8_t previousNote = notePriority_.activeMidiNote();
   const MonophonicNoteAction action = notePriority_.handleNoteEvent(event);
@@ -21,40 +21,40 @@ void AmyPerformanceAdapter::onNoteEvent(const NoteEvent& event) {
   applyNoteAction(action);
 }
 
-void AmyPerformanceAdapter::onPitchBendEvent(const PitchBendEvent& event) {
+void AmyMonophonicInstrumentSink::onPitchBendEvent(const PitchBendEvent& event) {
   runtime_.setGlobalPitchBend(event.value);
   pitchBend_ = event.value;
   audioGate_.wake();
 }
 
-void AmyPerformanceAdapter::onDisconnected() {
+void AmyMonophonicInstrumentSink::onDisconnected() {
   panic();
 }
 
-void AmyPerformanceAdapter::panic() {
+void AmyMonophonicInstrumentSink::panic() {
   runtime_.setGlobalPitchBend(0);
   pitchBend_ = 0;
   applyNoteAction(notePriority_.stopAll());
   audioGate_.wake();
 }
 
-bool AmyPerformanceAdapter::noteActive() const {
+bool AmyMonophonicInstrumentSink::noteActive() const {
   return notePriority_.isNoteActive();
 }
 
-uint8_t AmyPerformanceAdapter::activeMidiNote() const {
+uint8_t AmyMonophonicInstrumentSink::activeMidiNote() const {
   return notePriority_.activeMidiNote();
 }
 
-int16_t AmyPerformanceAdapter::pitchBend() const {
+int16_t AmyMonophonicInstrumentSink::pitchBend() const {
   return pitchBend_;
 }
 
-float AmyPerformanceAdapter::normalizedVelocity(uint8_t velocity) {
+float AmyMonophonicInstrumentSink::normalizedVelocity(uint8_t velocity) {
   return static_cast<float>(velocity) / 127.0f;
 }
 
-void AmyPerformanceAdapter::applyNoteAction(
+void AmyMonophonicInstrumentSink::applyNoteAction(
     const MonophonicNoteAction& action) {
   switch (action.type) {
     case MonophonicNoteActionType::None:

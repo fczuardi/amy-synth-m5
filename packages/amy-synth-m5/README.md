@@ -38,7 +38,7 @@ future umbrella showcase tests whether the API is stable enough to publish.
 - selects built-in patches;
 - sends note on/off events.
 
-`AmyPerformanceAdapter` applies the shared monophonic performance policy to AMY:
+`AmyMonophonicInstrumentSink` applies shared monophonic note policy to AMY:
 
 - implements `InstrumentEventSink` from `firmware-contracts`;
 - uses `MonophonicNotePriority` from `monophonic-instrument`;
@@ -59,7 +59,7 @@ This package currently contains two families with different portability:
 
 | Family | Components | Assumptions |
 | --- | --- | --- |
-| AMY control | `AmyRuntime`, `AmySynthSlot`, `AmyPerformanceAdapter` | Arduino + firmware contracts + monophonic note policy + AMY event API |
+| AMY control | `AmyRuntime`, `AmySynthSlot`, `AmyMonophonicInstrumentSink` | Arduino + firmware contracts + monophonic note policy + AMY event API |
 | Core Gray output | `AmyM5SpeakerBridge`, `AmyAudioActivityGate` | AMY PCM, M5Unified, Core Gray speaker behavior |
 
 The audio bridge is the strongest extraction candidate so far because it
@@ -70,3 +70,9 @@ being treated as a stable public AMY-control API.
 The manifest declares both AMY and M5Unified because the current package ships
 both families together. If the AMY-control family graduates separately later,
 it should not carry the M5Unified dependency.
+
+`AmyMonophonicInstrumentSink` also requires `monophonic-instrument`, but this
+package does not currently declare that dependency in `library.json` because
+the sibling repo is a package host whose Git root is not itself a PlatformIO
+package. Until a registry, archive, or subpackage distribution path is chosen,
+consumers must provide `packages/monophonic-instrument` explicitly.

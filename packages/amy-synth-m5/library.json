@@ -13,7 +13,7 @@
   "headers": [
     "AmyRuntime.h",
     "AmySynthSlot.h",
-    "AmyPerformanceAdapter.h",
+    "AmyMonophonicInstrumentSink.h",
     "AmyM5SpeakerBridge.h",
     "AmyAudioActivityGate.h"
   ],
@@ -21,10 +21,6 @@
     {
       "name": "firmware-contracts",
       "version": "https://github.com/fczuardi/embedded-music-experiments.git#c9bde598cff9"
-    },
-    {
-      "name": "monophonic-instrument",
-      "version": "https://github.com/fczuardi/monophonic-instrument.git#8159a694c086"
     },
     {
       "name": "AMY Synthesizer",

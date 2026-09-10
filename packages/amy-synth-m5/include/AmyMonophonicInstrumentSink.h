@@ -8,14 +8,14 @@
 #include "InstrumentEventSink.h"
 #include "MonophonicNotePriority.h"
 
-// Adapts shared instrument events into a simple monophonic AMY performance.
+// Applies shared instrument events to a monophonic AMY synth slot.
 //
 // This boundary is intentionally above AmyRuntime and AmySynthSlot: it owns the
 // note priority policy, wakes the audio gate on musical activity, and leaves
 // patch selection plus raw AMY event translation to the lower-level objects.
-class AmyPerformanceAdapter : public InstrumentEventSink {
+class AmyMonophonicInstrumentSink : public InstrumentEventSink {
  public:
-  AmyPerformanceAdapter(
+  AmyMonophonicInstrumentSink(
       AmyRuntime& runtime,
       AmySynthSlot& synthSlot,
       AmyAudioActivityGate& audioGate);

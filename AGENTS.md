@@ -14,6 +14,10 @@ risks before any architecture is promoted.
 - Keep `core_dir` pointed at `/home/fcz/dev/m5stick/.platformio-home`.
 - Keep runnable firmware under `apps/` and exported package candidates under
   `packages/`.
+- Treat this repository as a package host/monorepo. The repository root is not
+  a PlatformIO package; each exported package must live under
+  `packages/<name>/` with its own `library.json`. Consume sibling packages by
+  concrete package directory or packed archive, not by Git repository root.
 
 ## Boundaries
 
