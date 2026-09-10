@@ -25,6 +25,12 @@ class AmySynthVoice {
   // Sends note-off for the requested MIDI note.
   void noteOff(uint8_t midiNote);
 
+  // Sets AMY's global pitch bend using MIDI's signed bend range.
+  //
+  // AMY stores pitch bend in octave units. This method follows AMY's MIDI
+  // handler mapping: -8192..8191 becomes roughly -2..+2 semitones.
+  void setPitchBend(int16_t value);
+
   // Releases the latest note started through this wrapper, if there is one.
   void stopActiveNote();
 
@@ -32,13 +38,18 @@ class AmySynthVoice {
   uint8_t voiceCount() const;
   uint8_t patchNumber() const;
   uint8_t activeMidiNote() const;
+  int16_t pitchBend() const;
   bool noteActive() const;
 
  private:
+  static int16_t clampedPitchBend(int16_t value);
+  static float pitchBendOctaves(int16_t value);
+
   uint8_t synthId_ = 0;
   uint8_t voiceCount_ = 1;
   uint8_t patchNumber_ = 0;
   uint8_t activeMidiNote_ = 0;
+  int16_t pitchBend_ = 0;
   bool noteActive_ = false;
   bool begun_ = false;
 };

@@ -9,6 +9,7 @@ void AmySynthVoice::begin(uint8_t synthId,
   voiceCount_ = voiceCount;
   patchNumber_ = initialPatch;
   activeMidiNote_ = 0;
+  pitchBend_ = 0;
   noteActive_ = false;
   begun_ = true;
 
@@ -65,6 +66,18 @@ void AmySynthVoice::noteOff(uint8_t midiNote) {
   }
 }
 
+void AmySynthVoice::setPitchBend(int16_t value) {
+  pitchBend_ = clampedPitchBend(value);
+  if (!begun_) {
+    return;
+  }
+
+  amy_event event = amy_default_event();
+  event.synth = synthId_;
+  event.pitch_bend = pitchBendOctaves(pitchBend_);
+  amy_add_event(&event);
+}
+
 void AmySynthVoice::stopActiveNote() {
   if (!noteActive_) {
     return;
@@ -89,6 +102,24 @@ uint8_t AmySynthVoice::activeMidiNote() const {
   return activeMidiNote_;
 }
 
+int16_t AmySynthVoice::pitchBend() const {
+  return pitchBend_;
+}
+
 bool AmySynthVoice::noteActive() const {
   return noteActive_;
+}
+
+int16_t AmySynthVoice::clampedPitchBend(int16_t value) {
+  if (value < -8192) {
+    return -8192;
+  }
+  if (value > 8191) {
+    return 8191;
+  }
+  return value;
+}
+
+float AmySynthVoice::pitchBendOctaves(int16_t value) {
+  return static_cast<float>(value) / (6.0f * 8192.0f);
 }

@@ -13,6 +13,9 @@ constexpr uint8_t AMY_SYNTH_ID = 1;
 constexpr uint8_t AMY_MONO_VOICES = 1;
 constexpr uint8_t JUNO_PATCH_COUNT = 128;
 constexpr float AMY_NOTE_VELOCITY = 1.0f;
+constexpr int16_t PITCH_BEND_CENTER = 0;
+constexpr int16_t PITCH_BEND_DOWN = -8192;
+constexpr int16_t PITCH_BEND_UP = 8191;
 
 constexpr uint8_t AUDIO_CHANNEL = 0;
 constexpr int32_t OUTPUT_GAIN = 2;
@@ -113,10 +116,20 @@ void startAuditionNote() {
 
 void stopAuditionNote() {
   const uint8_t releasedNote = synthVoice.activeMidiNote();
+  synthVoice.setPitchBend(PITCH_BEND_CENTER);
   synthVoice.stopActiveNote();
   Serial.printf("amy: note_off patch=%u midi_note=%u\n",
                 synthVoice.patchNumber(),
                 releasedNote);
+}
+
+void setPitchBend(int16_t value) {
+  if (synthVoice.pitchBend() == value) {
+    return;
+  }
+
+  synthVoice.setPitchBend(value);
+  Serial.printf("amy: pitch_bend value=%d\n", value);
 }
 
 void setPatchIndex(size_t patchIndex) {
@@ -143,10 +156,21 @@ void updateButtons() {
   if (M5.BtnA.wasReleased() && synthVoice.noteActive()) {
     stopAuditionNote();
   }
-  if (M5.BtnB.wasPressed()) {
+  if (synthVoice.noteActive() && M5.BtnB.wasPressed()) {
+    setPitchBend(PITCH_BEND_DOWN);
+  }
+  if (synthVoice.noteActive() && M5.BtnC.wasPressed()) {
+    setPitchBend(PITCH_BEND_UP);
+  }
+  if (synthVoice.noteActive() &&
+      ((M5.BtnB.wasReleased() && synthVoice.pitchBend() == PITCH_BEND_DOWN) ||
+       (M5.BtnC.wasReleased() && synthVoice.pitchBend() == PITCH_BEND_UP))) {
+    setPitchBend(PITCH_BEND_CENTER);
+  }
+  if (!synthVoice.noteActive() && M5.BtnB.wasPressed()) {
     previousPatch();
   }
-  if (M5.BtnC.wasPressed()) {
+  if (!synthVoice.noteActive() && M5.BtnC.wasPressed()) {
     nextPatch();
   }
 }
@@ -245,7 +269,7 @@ void logStatus() {
   }
 
   lastStatusLogAtMs = nowMs;
-  Serial.printf("status: uptime_ms=%lu muted=%s rendered=%lu queued=%lu dropped=%lu blocked=%lu speaker_queue=%u patch=%u note_active=%s\n",
+  Serial.printf("status: uptime_ms=%lu muted=%s rendered=%lu queued=%lu dropped=%lu blocked=%lu speaker_queue=%u patch=%u pitch_bend=%d note_active=%s\n",
                 static_cast<unsigned long>(nowMs),
                 muted ? "true" : "false",
                 static_cast<unsigned long>(renderedBlockCount),
@@ -254,6 +278,7 @@ void logStatus() {
                 static_cast<unsigned long>(queueBlockedCount),
                 static_cast<unsigned>(M5.Speaker.isPlaying(AUDIO_CHANNEL)),
                 activePatchNumber(),
+                synthVoice.pitchBend(),
                 synthVoice.noteActive() ? "true" : "false");
 }
 }  // namespace
