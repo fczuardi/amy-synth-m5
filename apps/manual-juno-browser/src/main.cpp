@@ -1,13 +1,13 @@
 #include <Arduino.h>
 #include <M5Unified.h>
 
+#include "AmyAudioActivityGate.h"
 #include "AmyM5SpeakerBridge.h"
 #include "AmySynthVoice.h"
 
 namespace {
 constexpr uint32_t SERIAL_BAUD = 115200;
 constexpr uint32_t STATUS_LOG_INTERVAL_MS = 1000;
-constexpr uint32_t AUDIO_RELEASE_TAIL_MS = 700;
 constexpr uint8_t AUDITION_NOTE = 72;
 
 constexpr uint8_t AMY_SYNTH_ID = 1;
@@ -21,16 +21,10 @@ constexpr int16_t PITCH_BEND_UP = 8191;
 uint32_t lastStatusLogAtMs = 0;
 
 bool muted = false;
-bool audioBridgeAwake = false;
-uint32_t audioAwakeUntilMs = 0;
 size_t activePatchIndex = 0;
 AmyM5SpeakerBridge amyBridge;
+AmyAudioActivityGate audioGate(amyBridge);
 AmySynthVoice synthVoice;
-
-void wakeAudioBridge(uint32_t tailMs = AUDIO_RELEASE_TAIL_MS) {
-  audioAwakeUntilMs = millis() + tailMs;
-  audioBridgeAwake = true;
-}
 
 void drawScreen(const char* stateLabel) {
   M5.Display.fillScreen(TFT_BLACK);
@@ -65,7 +59,7 @@ void configureActivePatch() {
 }
 
 void startAuditionNote() {
-  wakeAudioBridge();
+  audioGate.wake();
   synthVoice.noteOn(AUDITION_NOTE, AMY_NOTE_VELOCITY);
   Serial.printf("amy: note_on patch=%u midi_note=%u\n",
                 synthVoice.patchNumber(),
@@ -76,7 +70,7 @@ void stopAuditionNote() {
   const uint8_t releasedNote = synthVoice.activeMidiNote();
   synthVoice.setPitchBend(PITCH_BEND_CENTER);
   synthVoice.stopActiveNote();
-  wakeAudioBridge();
+  audioGate.wake();
   Serial.printf("amy: note_off patch=%u midi_note=%u\n",
                 synthVoice.patchNumber(),
                 releasedNote);
@@ -88,7 +82,7 @@ void setPitchBend(int16_t value) {
   }
 
   synthVoice.setPitchBend(value);
-  wakeAudioBridge();
+  audioGate.wake();
   Serial.printf("amy: pitch_bend value=%d\n", value);
 }
 
@@ -157,26 +151,15 @@ void logStatus() {
 
 void updateAudioBridge() {
   if (muted) {
-    if (audioBridgeAwake) {
-      amyBridge.stopOutput();
-      audioBridgeAwake = false;
+    if (audioGate.awake()) {
+      audioGate.forceIdle();
     }
     return;
   }
 
-  const bool shouldRender =
-      synthVoice.noteActive() ||
-      static_cast<int32_t>(millis() - audioAwakeUntilMs) < 0;
-
-  if (shouldRender) {
-    amyBridge.update();
-    audioBridgeAwake = true;
-    return;
-  }
-
-  if (audioBridgeAwake) {
-    amyBridge.stopOutput();
-    audioBridgeAwake = false;
+  const bool wasAwake = audioGate.awake();
+  const bool isAwake = audioGate.update(synthVoice.noteActive());
+  if (wasAwake && !isAwake) {
     Serial.println("amy: audio_idle");
   }
 }

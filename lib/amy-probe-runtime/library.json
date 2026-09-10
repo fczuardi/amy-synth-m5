@@ -5,5 +5,9 @@
   "description": "Internal AMY runtime helpers for amy-synth-probe apps",
   "frameworks": "arduino",
   "platforms": "espressif32",
-  "headers": ["AmySynthVoice.h", "AmyM5SpeakerBridge.h"]
+  "headers": [
+    "AmySynthVoice.h",
+    "AmyM5SpeakerBridge.h",
+    "AmyAudioActivityGate.h"
+  ]
 }

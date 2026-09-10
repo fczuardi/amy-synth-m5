@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <M5Unified.h>
 
+#include "AmyAudioActivityGate.h"
 #include "AmyM5SpeakerBridge.h"
 #include "AmySynthVoice.h"
 #include "BleMidiInput.h"
@@ -8,26 +9,19 @@
 
 namespace {
 constexpr uint32_t STATUS_LOG_INTERVAL_MS = 1000;
-constexpr uint32_t AUDIO_RELEASE_TAIL_MS = 700;
 constexpr uint8_t AMY_SYNTH_ID = 1;
 constexpr uint8_t AMY_MONO_VOICES = 1;
 constexpr uint8_t INITIAL_JUNO_PATCH = 19;
 
 AmyM5SpeakerBridge amyBridge;
+AmyAudioActivityGate audioGate(amyBridge);
 AmySynthVoice synthVoice;
 BleMidiInput bleMidiInput;
 
 uint32_t lastStatusLogAtMs = 0;
-uint32_t audioAwakeUntilMs = 0;
-bool audioBridgeAwake = false;
 
 float normalizedVelocity(uint8_t velocity) {
   return static_cast<float>(velocity) / 127.0f;
-}
-
-void wakeAudioBridge(uint32_t tailMs = AUDIO_RELEASE_TAIL_MS) {
-  audioAwakeUntilMs = millis() + tailMs;
-  audioBridgeAwake = true;
 }
 
 class AmyInstrumentSink : public InstrumentEventSink {
@@ -38,7 +32,7 @@ class AmyInstrumentSink : public InstrumentEventSink {
         synthVoice.stopActiveNote();
       }
 
-      wakeAudioBridge();
+      audioGate.wake();
       synthVoice.noteOn(event.note, normalizedVelocity(event.velocity));
       Serial.printf("amy_midi: note_on channel=%u note=%u velocity=%u patch=%u\n",
                     event.channel,
@@ -49,7 +43,7 @@ class AmyInstrumentSink : public InstrumentEventSink {
     }
 
     synthVoice.noteOff(event.note);
-    wakeAudioBridge();
+    audioGate.wake();
     Serial.printf("amy_midi: note_off channel=%u note=%u velocity=%u patch=%u\n",
                   event.channel,
                   event.note,
@@ -59,7 +53,7 @@ class AmyInstrumentSink : public InstrumentEventSink {
 
   void onPitchBendEvent(const PitchBendEvent& event) override {
     synthVoice.setPitchBend(event.value);
-    wakeAudioBridge();
+    audioGate.wake();
     Serial.printf("amy_midi: pitch_bend channel=%u value=%d\n",
                   event.channel,
                   event.value);
@@ -72,7 +66,7 @@ class AmyInstrumentSink : public InstrumentEventSink {
   void panic(const char* reason) {
     synthVoice.setPitchBend(0);
     synthVoice.stopActiveNote();
-    wakeAudioBridge();
+    audioGate.wake();
     Serial.printf("amy_midi: panic reason=%s\n", reason);
   }
 };
@@ -185,19 +179,9 @@ void logStatus() {
 }
 
 void updateAudioBridge() {
-  const bool shouldRender =
-      synthVoice.noteActive() ||
-      static_cast<int32_t>(millis() - audioAwakeUntilMs) < 0;
-
-  if (shouldRender) {
-    amyBridge.update();
-    audioBridgeAwake = true;
-    return;
-  }
-
-  if (audioBridgeAwake) {
-    amyBridge.stopOutput();
-    audioBridgeAwake = false;
+  const bool wasAwake = audioGate.awake();
+  const bool isAwake = audioGate.update(synthVoice.noteActive());
+  if (wasAwake && !isAwake) {
     Serial.println("amy_audio: idle");
   }
 }
