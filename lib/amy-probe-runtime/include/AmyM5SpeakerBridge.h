@@ -8,6 +8,7 @@ class AmyM5SpeakerBridge {
  public:
   void begin();
   void update();
+  void stopOutput();
 
   bool amyStarted() const;
   uint32_t renderedBlockCount() const;

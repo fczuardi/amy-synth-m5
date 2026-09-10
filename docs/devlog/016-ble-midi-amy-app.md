@@ -92,3 +92,7 @@ label should be treated as scanner/app-specific.
 Connecting to `Bluetooth MIDI` from SynthBridge succeeded. The Android virtual
 controller sent Note On/Off and Pitch Bend values to the hardware, validating
 the `BleMidiInput -> AmyInstrumentSink -> AmySynthVoice` path.
+
+A later hardware pass connected a real USB MIDI keyboard to Android through USB
+OTG and bridged it through SynthBridge. Velocity and pitch bend both reached the
+AMY app correctly.

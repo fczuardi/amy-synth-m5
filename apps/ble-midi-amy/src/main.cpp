@@ -8,6 +8,7 @@
 
 namespace {
 constexpr uint32_t STATUS_LOG_INTERVAL_MS = 1000;
+constexpr uint32_t AUDIO_RELEASE_TAIL_MS = 700;
 constexpr uint8_t AMY_SYNTH_ID = 1;
 constexpr uint8_t AMY_MONO_VOICES = 1;
 constexpr uint8_t INITIAL_JUNO_PATCH = 19;
@@ -17,9 +18,16 @@ AmySynthVoice synthVoice;
 BleMidiInput bleMidiInput;
 
 uint32_t lastStatusLogAtMs = 0;
+uint32_t audioAwakeUntilMs = 0;
+bool audioBridgeAwake = false;
 
 float normalizedVelocity(uint8_t velocity) {
   return static_cast<float>(velocity) / 127.0f;
+}
+
+void wakeAudioBridge(uint32_t tailMs = AUDIO_RELEASE_TAIL_MS) {
+  audioAwakeUntilMs = millis() + tailMs;
+  audioBridgeAwake = true;
 }
 
 class AmyInstrumentSink : public InstrumentEventSink {
@@ -30,6 +38,7 @@ class AmyInstrumentSink : public InstrumentEventSink {
         synthVoice.stopActiveNote();
       }
 
+      wakeAudioBridge();
       synthVoice.noteOn(event.note, normalizedVelocity(event.velocity));
       Serial.printf("amy_midi: note_on channel=%u note=%u velocity=%u patch=%u\n",
                     event.channel,
@@ -40,6 +49,7 @@ class AmyInstrumentSink : public InstrumentEventSink {
     }
 
     synthVoice.noteOff(event.note);
+    wakeAudioBridge();
     Serial.printf("amy_midi: note_off channel=%u note=%u velocity=%u patch=%u\n",
                   event.channel,
                   event.note,
@@ -49,6 +59,7 @@ class AmyInstrumentSink : public InstrumentEventSink {
 
   void onPitchBendEvent(const PitchBendEvent& event) override {
     synthVoice.setPitchBend(event.value);
+    wakeAudioBridge();
     Serial.printf("amy_midi: pitch_bend channel=%u value=%d\n",
                   event.channel,
                   event.value);
@@ -61,6 +72,7 @@ class AmyInstrumentSink : public InstrumentEventSink {
   void panic(const char* reason) {
     synthVoice.setPitchBend(0);
     synthVoice.stopActiveNote();
+    wakeAudioBridge();
     Serial.printf("amy_midi: panic reason=%s\n", reason);
   }
 };
@@ -171,6 +183,24 @@ void logStatus() {
                 synthVoice.pitchBend(),
                 synthVoice.noteActive() ? "true" : "false");
 }
+
+void updateAudioBridge() {
+  const bool shouldRender =
+      synthVoice.noteActive() ||
+      static_cast<int32_t>(millis() - audioAwakeUntilMs) < 0;
+
+  if (shouldRender) {
+    amyBridge.update();
+    audioBridgeAwake = true;
+    return;
+  }
+
+  if (audioBridgeAwake) {
+    amyBridge.stopOutput();
+    audioBridgeAwake = false;
+    Serial.println("amy_audio: idle");
+  }
+}
 }  // namespace
 
 void setup() {
@@ -200,7 +230,7 @@ void setup() {
 void loop() {
   M5.update();
   bleMidiInput.update();
-  amyBridge.update();
+  updateAudioBridge();
 
   if (M5.BtnA.wasPressed()) {
     amyInstrumentSink.panic("button_a");

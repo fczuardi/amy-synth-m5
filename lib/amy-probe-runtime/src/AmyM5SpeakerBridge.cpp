@@ -25,6 +25,11 @@ void AmyM5SpeakerBridge::update() {
   }
 }
 
+void AmyM5SpeakerBridge::stopOutput() {
+  activeBufferSamples_ = 0;
+  M5.Speaker.stop(AUDIO_CHANNEL);
+}
+
 bool AmyM5SpeakerBridge::amyStarted() const {
   return amyStarted_;
 }

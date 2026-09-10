@@ -7,6 +7,7 @@
 namespace {
 constexpr uint32_t SERIAL_BAUD = 115200;
 constexpr uint32_t STATUS_LOG_INTERVAL_MS = 1000;
+constexpr uint32_t AUDIO_RELEASE_TAIL_MS = 700;
 constexpr uint8_t AUDITION_NOTE = 72;
 
 constexpr uint8_t AMY_SYNTH_ID = 1;
@@ -20,9 +21,16 @@ constexpr int16_t PITCH_BEND_UP = 8191;
 uint32_t lastStatusLogAtMs = 0;
 
 bool muted = false;
+bool audioBridgeAwake = false;
+uint32_t audioAwakeUntilMs = 0;
 size_t activePatchIndex = 0;
 AmyM5SpeakerBridge amyBridge;
 AmySynthVoice synthVoice;
+
+void wakeAudioBridge(uint32_t tailMs = AUDIO_RELEASE_TAIL_MS) {
+  audioAwakeUntilMs = millis() + tailMs;
+  audioBridgeAwake = true;
+}
 
 void drawScreen(const char* stateLabel) {
   M5.Display.fillScreen(TFT_BLACK);
@@ -57,6 +65,7 @@ void configureActivePatch() {
 }
 
 void startAuditionNote() {
+  wakeAudioBridge();
   synthVoice.noteOn(AUDITION_NOTE, AMY_NOTE_VELOCITY);
   Serial.printf("amy: note_on patch=%u midi_note=%u\n",
                 synthVoice.patchNumber(),
@@ -67,6 +76,7 @@ void stopAuditionNote() {
   const uint8_t releasedNote = synthVoice.activeMidiNote();
   synthVoice.setPitchBend(PITCH_BEND_CENTER);
   synthVoice.stopActiveNote();
+  wakeAudioBridge();
   Serial.printf("amy: note_off patch=%u midi_note=%u\n",
                 synthVoice.patchNumber(),
                 releasedNote);
@@ -78,6 +88,7 @@ void setPitchBend(int16_t value) {
   }
 
   synthVoice.setPitchBend(value);
+  wakeAudioBridge();
   Serial.printf("amy: pitch_bend value=%d\n", value);
 }
 
@@ -143,6 +154,32 @@ void logStatus() {
                 synthVoice.pitchBend(),
                 synthVoice.noteActive() ? "true" : "false");
 }
+
+void updateAudioBridge() {
+  if (muted) {
+    if (audioBridgeAwake) {
+      amyBridge.stopOutput();
+      audioBridgeAwake = false;
+    }
+    return;
+  }
+
+  const bool shouldRender =
+      synthVoice.noteActive() ||
+      static_cast<int32_t>(millis() - audioAwakeUntilMs) < 0;
+
+  if (shouldRender) {
+    amyBridge.update();
+    audioBridgeAwake = true;
+    return;
+  }
+
+  if (audioBridgeAwake) {
+    amyBridge.stopOutput();
+    audioBridgeAwake = false;
+    Serial.println("amy: audio_idle");
+  }
+}
 }  // namespace
 
 void setup() {
@@ -177,8 +214,6 @@ void setup() {
 void loop() {
   M5.update();
   updateButtons();
-  if (!muted) {
-    amyBridge.update();
-  }
+  updateAudioBridge();
   logStatus();
 }
