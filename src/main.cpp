@@ -8,9 +8,11 @@ constexpr uint32_t STATUS_LOG_INTERVAL_MS = 1000;
 constexpr uint32_t NOTE_ON_INTERVAL_MS = 2500;
 constexpr uint32_t NOTE_DURATION_MS = 1400;
 
-constexpr uint8_t TEST_OSC_ID = 0;
-constexpr float TEST_FREQUENCY_HZ = 440.0f;
-constexpr float AMY_TEST_VELOCITY = 1.0f;
+constexpr uint8_t AMY_SYNTH_ID = 1;
+constexpr uint8_t AMY_PATCH_JUNO = 1;
+constexpr uint8_t AMY_POLYPHONY = 4;
+constexpr uint8_t TEST_NOTES[] = {48, 52, 55, 60};
+constexpr float AMY_NOTE_VELOCITY = 1.0f;
 
 constexpr uint8_t AUDIO_CHANNEL = 0;
 constexpr int32_t OUTPUT_GAIN = 12;
@@ -45,9 +47,10 @@ int32_t gateTargetGain = 0;
 int32_t gateStep = 0;
 
 bool amyStarted = false;
-bool oscillatorStarted = false;
 bool noteActive = false;
 bool muted = false;
+size_t nextNoteIndex = 0;
+uint8_t activeMidiNote = 0;
 
 void drawScreen(const char* stateLabel) {
   M5.Display.fillScreen(TFT_BLACK);
@@ -60,7 +63,7 @@ void drawScreen(const char* stateLabel) {
   M5.Display.setTextSize(1);
   M5.Display.println();
   M5.Display.println("Mode: AMY stream");
-  M5.Display.printf("Tone: %.0f Hz\n", TEST_FREQUENCY_HZ);
+  M5.Display.println("Patch: Juno 1");
   M5.Display.print("Muted: ");
   M5.Display.println(muted ? "yes" : "no");
   M5.Display.print("State: ");
@@ -90,18 +93,16 @@ void startAmyForPcm() {
 
   amy_start(amyConfig);
   amyStarted = true;
-}
 
-void startSineOscillator() {
   amy_event event = amy_default_event();
-  event.osc = TEST_OSC_ID;
-  event.wave = SINE;
-  event.freq_coefs[COEF_CONST] = TEST_FREQUENCY_HZ;
-  event.velocity = AMY_TEST_VELOCITY;
+  event.synth = AMY_SYNTH_ID;
+  event.patch_number = AMY_PATCH_JUNO;
+  event.num_voices = AMY_POLYPHONY;
   amy_add_event(&event);
-
-  oscillatorStarted = true;
-  Serial.printf("amy: sine_started frequency_hz=%.2f\n", TEST_FREQUENCY_HZ);
+  Serial.printf("amy: synth_configured synth=%u patch=%u voices=%u\n",
+                AMY_SYNTH_ID,
+                AMY_PATCH_JUNO,
+                AMY_POLYPHONY);
 }
 
 void setGateTarget(int32_t targetGain) {
@@ -114,25 +115,30 @@ void setGateTarget(int32_t targetGain) {
   }
 }
 
-void openGate() {
-  if (muted) {
-    return;
-  }
+void noteOn(uint8_t midiNote) {
+  amy_event event = amy_default_event();
+  event.synth = AMY_SYNTH_ID;
+  event.midi_note = midiNote;
+  event.velocity = AMY_NOTE_VELOCITY;
+  amy_add_event(&event);
 
-  if (!oscillatorStarted) {
-    startSineOscillator();
-  }
-
+  activeMidiNote = midiNote;
   setGateTarget(GATE_GAIN_SCALE);
   noteActive = true;
   currentNoteStartedAtMs = millis();
-  Serial.println("gate: fade_in");
+  Serial.printf("amy: note_on midi_note=%u\n", midiNote);
 }
 
-void closeGate() {
+void noteOff() {
+  amy_event event = amy_default_event();
+  event.synth = AMY_SYNTH_ID;
+  event.midi_note = activeMidiNote;
+  event.velocity = 0.0f;
+  amy_add_event(&event);
+
   setGateTarget(0);
   noteActive = false;
-  Serial.println("gate: fade_out");
+  Serial.printf("amy: note_off midi_note=%u\n", activeMidiNote);
 }
 
 void resetOutputState() {
@@ -146,7 +152,9 @@ void resetOutputState() {
 void toggleMute() {
   muted = !muted;
   if (muted) {
-    closeGate();
+    if (noteActive) {
+      noteOff();
+    }
     resetOutputState();
   } else {
     lastNoteOnAtMs = millis() - NOTE_ON_INTERVAL_MS;
@@ -160,12 +168,14 @@ void updateTestNoteGate() {
   const uint32_t nowMs = millis();
 
   if (noteActive && nowMs - currentNoteStartedAtMs >= NOTE_DURATION_MS) {
-    closeGate();
+    noteOff();
   }
 
   if (!noteActive && nowMs - lastNoteOnAtMs >= NOTE_ON_INTERVAL_MS) {
     lastNoteOnAtMs = nowMs;
-    openGate();
+    noteOn(TEST_NOTES[nextNoteIndex]);
+    nextNoteIndex = (nextNoteIndex + 1) %
+                    (sizeof(TEST_NOTES) / sizeof(TEST_NOTES[0]));
   }
 }
 
