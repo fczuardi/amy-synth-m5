@@ -5,8 +5,16 @@ initial AMY library explorations against a M5Stack Core Gray v1.0.
 The development is narrated as readable chapters in `docs/devlog/`, like the
 other related projects in this young ecosystem of experimentation.
 
-Later this can graduate to a more organized package, or be renamed, if the
+Later this can graduate to more organized packages, or be renamed, if the
 probing and experimentation shows potential.
+
+## Layout
+
+- `apps/manual-juno-browser/`: the currently validated hardware app.
+- `docs/devlog/`: narrative experiment chapters.
+
+The repository root is intentionally left free for future `packages/` if the
+AMY wrapper or PCM bridge matures into reusable modules.
 
 ## Current State
 
@@ -33,5 +41,6 @@ Design notes and next candidate slices live in the devlog chapters under
 `docs/devlog/`.
 
 ```bash
+cd apps/manual-juno-browser
 pio run
 ```

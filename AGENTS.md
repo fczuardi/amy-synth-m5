@@ -12,6 +12,8 @@ risks before any architecture is promoted.
 - Record one narrative chapter per slice under `docs/devlog/`.
 - Prefer PlatformIO with the Arduino framework for ESP32/M5Stack probes.
 - Keep `core_dir` pointed at `/home/fcz/dev/m5stick/.platformio-home`.
+- Keep runnable firmware under `apps/` so the repository root remains available
+  for future `packages/` if an AMY boundary matures.
 
 ## Boundaries
 
@@ -21,4 +23,3 @@ risks before any architecture is promoted.
   `embedded-music-experiments` only after the engine boundary is understood.
 - Do not design generic audio abstractions before a real AMY output path makes
   the repeated shape visible.
-
