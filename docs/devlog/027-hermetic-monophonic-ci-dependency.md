@@ -58,9 +58,12 @@ Results:
   `../../../deps/monophonic-instrument/packages/monophonic-instrument`;
 - consumer build passed.
 
-## Limits
+## Follow-up
 
-This is a bootstrap CI path, not the final distribution mechanism. It still
-requires checking out the sibling repository. The intended release path is a
+This was a bootstrap CI path, not the final distribution mechanism. It still
+required checking out the sibling repository. The intended release path was a
 custom GitHub Release asset containing the packed subdirectory tarball, not
 GitHub Packages and not GitHub's automatic repository source archive.
+
+That follow-up is handled in the release-asset slice once
+`monophonic-instrument-v0.1.2` exists.

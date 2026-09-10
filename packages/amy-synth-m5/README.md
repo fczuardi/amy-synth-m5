@@ -74,11 +74,12 @@ The manifest declares both AMY and M5Unified because the current package ships
 both families together. If the AMY-control family graduates separately later,
 it should not carry the M5Unified dependency.
 
-`AmyMonophonicInstrumentSink` also requires `monophonic-instrument`, but this
-package does not currently declare that dependency in `library.json` because
-the sibling repo is a package host whose Git root is not itself a PlatformIO
-package. Until a registry, archive, or subpackage distribution path is chosen,
-consumers must provide `packages/monophonic-instrument` explicitly.
+`AmyMonophonicInstrumentSink` also requires `monophonic-instrument`. The CI
+consumer currently provides that dependency from the concrete sibling package
+directory checked out at a pinned commit. A custom GitHub Release asset exists
+for `monophonic-instrument`, but its exact URL is too long for PlatformIO
+6.1.19's `library.json` dependency `version` field, so the release asset is not
+yet declared transitively in this manifest.
 
 ## Tests
 
