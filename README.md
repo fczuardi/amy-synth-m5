@@ -41,10 +41,11 @@ that have more than one local consumer. The strongest package candidate is the
 audio bridge: `AmyM5SpeakerBridge` plus `AmyAudioActivityGate` own AMY PCM
 rendering, Core Gray speaker queuing, and idle output shutdown.
 
-`AmySynthVoice` is also extracted, but remains more provisional. It owns one
-AMY synth slot and translates patch, note, and pitch-bend calls into AMY
-events, while app code still owns performance policy such as monophonic note
-replacement and BLE MIDI routing.
+`AmyRuntime` and `AmySynthSlot` are also extracted, but remain more
+provisional. The runtime owns AMY-wide controls such as pitch bend. The slot
+owns one AMY synth slot and translates patch and note calls into AMY events,
+while app code still owns performance policy such as monophonic note
+replacement, active-note bookkeeping, panic behavior, and BLE MIDI routing.
 
 Design notes and next candidate slices live in the devlog chapters under
 `docs/devlog/`.

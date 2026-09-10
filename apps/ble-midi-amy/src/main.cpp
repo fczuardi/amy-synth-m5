@@ -3,7 +3,8 @@
 
 #include "AmyAudioActivityGate.h"
 #include "AmyM5SpeakerBridge.h"
-#include "AmySynthVoice.h"
+#include "AmyRuntime.h"
+#include "AmySynthSlot.h"
 #include "BleMidiInput.h"
 #include "InstrumentEventSink.h"
 
@@ -15,7 +16,8 @@ constexpr uint8_t INITIAL_JUNO_PATCH = 19;
 
 AmyM5SpeakerBridge amyBridge;
 AmyAudioActivityGate audioGate(amyBridge);
-AmySynthVoice synthVoice;
+AmyRuntime amyRuntime;
+AmySynthSlot synthSlot;
 BleMidiInput bleMidiInput;
 
 uint32_t lastStatusLogAtMs = 0;
@@ -28,31 +30,37 @@ class AmyInstrumentSink : public InstrumentEventSink {
  public:
   void onNoteEvent(const NoteEvent& event) override {
     if (event.type == NoteEventType::NoteOn && event.velocity > 0) {
-      if (synthVoice.noteActive()) {
-        synthVoice.stopActiveNote();
+      if (noteActive_) {
+        synthSlot.noteOff(activeMidiNote_);
       }
 
       audioGate.wake();
-      synthVoice.noteOn(event.note, normalizedVelocity(event.velocity));
+      synthSlot.noteOn(event.note, normalizedVelocity(event.velocity));
+      activeMidiNote_ = event.note;
+      noteActive_ = true;
       Serial.printf("amy_midi: note_on channel=%u note=%u velocity=%u patch=%u\n",
                     event.channel,
                     event.note,
                     event.velocity,
-                    synthVoice.patchNumber());
+                    synthSlot.patchNumber());
       return;
     }
 
-    synthVoice.noteOff(event.note);
+    synthSlot.noteOff(event.note);
+    if (noteActive_ && activeMidiNote_ == event.note) {
+      noteActive_ = false;
+    }
     audioGate.wake();
     Serial.printf("amy_midi: note_off channel=%u note=%u velocity=%u patch=%u\n",
                   event.channel,
                   event.note,
                   event.velocity,
-                  synthVoice.patchNumber());
+                  synthSlot.patchNumber());
   }
 
   void onPitchBendEvent(const PitchBendEvent& event) override {
-    synthVoice.setPitchBend(event.value);
+    amyRuntime.setGlobalPitchBend(event.value);
+    pitchBend_ = event.value;
     audioGate.wake();
     Serial.printf("amy_midi: pitch_bend channel=%u value=%d\n",
                   event.channel,
@@ -64,11 +72,28 @@ class AmyInstrumentSink : public InstrumentEventSink {
   }
 
   void panic(const char* reason) {
-    synthVoice.setPitchBend(0);
-    synthVoice.stopActiveNote();
+    amyRuntime.setGlobalPitchBend(0);
+    pitchBend_ = 0;
+    if (noteActive_) {
+      synthSlot.noteOff(activeMidiNote_);
+      noteActive_ = false;
+    }
     audioGate.wake();
     Serial.printf("amy_midi: panic reason=%s\n", reason);
   }
+
+  bool noteActive() const {
+    return noteActive_;
+  }
+
+  int16_t pitchBend() const {
+    return pitchBend_;
+  }
+
+ private:
+  uint8_t activeMidiNote_ = 0;
+  int16_t pitchBend_ = 0;
+  bool noteActive_ = false;
 };
 
 class SerialBleDiagnostics : public BleMidiInputDiagnosticSink {
@@ -173,14 +198,14 @@ void logStatus() {
                 static_cast<unsigned long>(amyBridge.droppedBufferCount()),
                 static_cast<unsigned long>(amyBridge.queueBlockedCount()),
                 static_cast<unsigned>(amyBridge.speakerQueueDepth()),
-                synthVoice.patchNumber(),
-                synthVoice.pitchBend(),
-                synthVoice.noteActive() ? "true" : "false");
+                synthSlot.patchNumber(),
+                amyInstrumentSink.pitchBend(),
+                amyInstrumentSink.noteActive() ? "true" : "false");
 }
 
 void updateAudioBridge() {
   const bool wasAwake = audioGate.awake();
-  const bool isAwake = audioGate.update(synthVoice.noteActive());
+  const bool isAwake = audioGate.update(amyInstrumentSink.noteActive());
   if (wasAwake && !isAwake) {
     Serial.println("amy_audio: idle");
   }
@@ -204,7 +229,8 @@ void setup() {
                 AMY_MONO_VOICES);
 
   amyBridge.begin();
-  synthVoice.begin(AMY_SYNTH_ID, AMY_MONO_VOICES, INITIAL_JUNO_PATCH);
+  amyRuntime.begin(AMY_SYNTH_ID);
+  synthSlot.begin(AMY_SYNTH_ID, AMY_MONO_VOICES, INITIAL_JUNO_PATCH);
 
   bleMidiInput.setInstrumentEventSink(&amyInstrumentSink);
   bleMidiInput.setDiagnosticSink(&bleDiagnostics);

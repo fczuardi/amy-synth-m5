@@ -3,7 +3,8 @@
 
 #include "AmyAudioActivityGate.h"
 #include "AmyM5SpeakerBridge.h"
-#include "AmySynthVoice.h"
+#include "AmyRuntime.h"
+#include "AmySynthSlot.h"
 
 namespace {
 constexpr uint32_t SERIAL_BAUD = 115200;
@@ -21,10 +22,14 @@ constexpr int16_t PITCH_BEND_UP = 8191;
 uint32_t lastStatusLogAtMs = 0;
 
 bool muted = false;
+bool auditionNoteActive = false;
+uint8_t activeMidiNote = AUDITION_NOTE;
+int16_t currentPitchBend = PITCH_BEND_CENTER;
 size_t activePatchIndex = 0;
 AmyM5SpeakerBridge amyBridge;
 AmyAudioActivityGate audioGate(amyBridge);
-AmySynthVoice synthVoice;
+AmyRuntime amyRuntime;
+AmySynthSlot synthSlot;
 
 void drawScreen(const char* stateLabel) {
   M5.Display.fillScreen(TFT_BLACK);
@@ -50,7 +55,7 @@ uint8_t activePatchNumber() {
 
 void configureActivePatch() {
   const uint8_t patchNumber = activePatchNumber();
-  synthVoice.setPatch(patchNumber);
+  synthSlot.setPatch(patchNumber);
 
   Serial.printf("amy: patch_configured synth=%u patch=%u voices=%u\n",
                 AMY_SYNTH_ID,
@@ -60,34 +65,39 @@ void configureActivePatch() {
 
 void startAuditionNote() {
   audioGate.wake();
-  synthVoice.noteOn(AUDITION_NOTE, AMY_NOTE_VELOCITY);
+  synthSlot.noteOn(AUDITION_NOTE, AMY_NOTE_VELOCITY);
+  activeMidiNote = AUDITION_NOTE;
+  auditionNoteActive = true;
   Serial.printf("amy: note_on patch=%u midi_note=%u\n",
-                synthVoice.patchNumber(),
+                synthSlot.patchNumber(),
                 AUDITION_NOTE);
 }
 
 void stopAuditionNote() {
-  const uint8_t releasedNote = synthVoice.activeMidiNote();
-  synthVoice.setPitchBend(PITCH_BEND_CENTER);
-  synthVoice.stopActiveNote();
+  const uint8_t releasedNote = activeMidiNote;
+  amyRuntime.setGlobalPitchBend(PITCH_BEND_CENTER);
+  currentPitchBend = PITCH_BEND_CENTER;
+  synthSlot.noteOff(releasedNote);
+  auditionNoteActive = false;
   audioGate.wake();
   Serial.printf("amy: note_off patch=%u midi_note=%u\n",
-                synthVoice.patchNumber(),
+                synthSlot.patchNumber(),
                 releasedNote);
 }
 
 void setPitchBend(int16_t value) {
-  if (synthVoice.pitchBend() == value) {
+  if (currentPitchBend == value) {
     return;
   }
 
-  synthVoice.setPitchBend(value);
+  amyRuntime.setGlobalPitchBend(value);
+  currentPitchBend = value;
   audioGate.wake();
   Serial.printf("amy: pitch_bend value=%d\n", value);
 }
 
 void setPatchIndex(size_t patchIndex) {
-  if (synthVoice.noteActive()) {
+  if (auditionNoteActive) {
     stopAuditionNote();
   }
 
@@ -104,27 +114,27 @@ void previousPatch() {
 }
 
 void updateButtons() {
-  if (M5.BtnA.wasPressed() && !synthVoice.noteActive()) {
+  if (M5.BtnA.wasPressed() && !auditionNoteActive) {
     startAuditionNote();
   }
-  if (M5.BtnA.wasReleased() && synthVoice.noteActive()) {
+  if (M5.BtnA.wasReleased() && auditionNoteActive) {
     stopAuditionNote();
   }
-  if (synthVoice.noteActive() && M5.BtnB.wasPressed()) {
+  if (auditionNoteActive && M5.BtnB.wasPressed()) {
     setPitchBend(PITCH_BEND_DOWN);
   }
-  if (synthVoice.noteActive() && M5.BtnC.wasPressed()) {
+  if (auditionNoteActive && M5.BtnC.wasPressed()) {
     setPitchBend(PITCH_BEND_UP);
   }
-  if (synthVoice.noteActive() &&
-      ((M5.BtnB.wasReleased() && synthVoice.pitchBend() == PITCH_BEND_DOWN) ||
-       (M5.BtnC.wasReleased() && synthVoice.pitchBend() == PITCH_BEND_UP))) {
+  if (auditionNoteActive &&
+      ((M5.BtnB.wasReleased() && currentPitchBend == PITCH_BEND_DOWN) ||
+       (M5.BtnC.wasReleased() && currentPitchBend == PITCH_BEND_UP))) {
     setPitchBend(PITCH_BEND_CENTER);
   }
-  if (!synthVoice.noteActive() && M5.BtnB.wasPressed()) {
+  if (!auditionNoteActive && M5.BtnB.wasPressed()) {
     previousPatch();
   }
-  if (!synthVoice.noteActive() && M5.BtnC.wasPressed()) {
+  if (!auditionNoteActive && M5.BtnC.wasPressed()) {
     nextPatch();
   }
 }
@@ -145,8 +155,8 @@ void logStatus() {
                 static_cast<unsigned long>(amyBridge.queueBlockedCount()),
                 static_cast<unsigned>(amyBridge.speakerQueueDepth()),
                 activePatchNumber(),
-                synthVoice.pitchBend(),
-                synthVoice.noteActive() ? "true" : "false");
+                amyRuntime.globalPitchBend(),
+                auditionNoteActive ? "true" : "false");
 }
 
 void updateAudioBridge() {
@@ -158,7 +168,7 @@ void updateAudioBridge() {
   }
 
   const bool wasAwake = audioGate.awake();
-  const bool isAwake = audioGate.update(synthVoice.noteActive());
+  const bool isAwake = audioGate.update(auditionNoteActive);
   if (wasAwake && !isAwake) {
     Serial.println("amy: audio_idle");
   }
@@ -186,7 +196,8 @@ void setup() {
 
   drawScreen("starting AMY");
   amyBridge.begin();
-  synthVoice.begin(AMY_SYNTH_ID, AMY_MONO_VOICES, activePatchNumber());
+  amyRuntime.begin(AMY_SYNTH_ID);
+  synthSlot.begin(AMY_SYNTH_ID, AMY_MONO_VOICES, activePatchNumber());
   Serial.printf("amy: patch_configured synth=%u patch=%u voices=%u\n",
                 AMY_SYNTH_ID,
                 activePatchNumber(),

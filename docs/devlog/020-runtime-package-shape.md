@@ -12,7 +12,8 @@ have emerged from the hardware slices:
 
 - `AmyM5SpeakerBridge` owns AMY PCM rendering into the Core Gray speaker path;
 - `AmyAudioActivityGate` owns speaker output lifecycle and idle shutdown;
-- `AmySynthVoice` owns a thin AMY synth-slot control wrapper.
+- `AmyRuntime` owns AMY-wide controls;
+- `AmySynthSlot` owns a thin AMY synth-slot control wrapper.
 
 The audio bridge is the strongest extraction candidate because it has a clear
 hardware responsibility and two real local consumers: the manual Juno browser
@@ -20,9 +21,10 @@ and the BLE MIDI AMY app. It also captures the empirical Core Gray findings:
 paced AMY rendering, stereo-to-mono mixing, small fixed buffers, conservative
 M5Unified queue depth, output gain, and stopping the speaker channel at rest.
 
-`AmySynthVoice` remains internal and provisional. It is useful, but its final
-shape depends on future decisions around AMY synth slots, multi-voice patches,
-global pitch bend, and where MIDI performance policy belongs.
+`AmyRuntime` and `AmySynthSlot` remain internal and provisional. They are
+useful, but their final shape depends on future decisions around AMY synth
+slots, multi-voice patches, global pitch bend, and where MIDI performance
+policy belongs.
 
 ## Non-Goals
 

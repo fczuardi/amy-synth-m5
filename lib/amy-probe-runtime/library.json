@@ -6,7 +6,8 @@
   "frameworks": "arduino",
   "platforms": "espressif32",
   "headers": [
-    "AmySynthVoice.h",
+    "AmyRuntime.h",
+    "AmySynthSlot.h",
     "AmyM5SpeakerBridge.h",
     "AmyAudioActivityGate.h"
   ]

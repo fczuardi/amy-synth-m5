@@ -24,19 +24,24 @@ Gray audio path while the reusable boundary is still being tested.
 - keeps a short release tail after notes end;
 - stops the M5Unified speaker channel at rest to avoid idle hiss.
 
-`AmySynthVoice` owns a thin AMY musical-control slot:
+`AmyRuntime` owns AMY-wide musical controls:
+
+- stores the synth/channel id used as routing metadata for runtime events;
+- sends AMY's global pitch-bend event;
+- keeps the current global bend value for diagnostics.
+
+`AmySynthSlot` owns a thin AMY musical-control slot:
 
 - configures one AMY synth slot;
 - selects built-in patches;
-- sends note on/off events;
-- forwards AMY's global pitch-bend event.
+- sends note on/off events.
 
 ## Non-Goals
 
 This library does not own BLE MIDI, application UI, patch browsing policy,
 monophonic note replacement, or generic cross-board audio output.
 
-The audio bridge is the strongest extraction candidate so far. `AmySynthVoice`
-is intentionally kept more provisional because AMY's pitch bend is global and
-the `Voice` name may not remain accurate if future apps use multi-voice synth
-slots.
+The audio bridge is the strongest extraction candidate so far. `AmyRuntime`
+and `AmySynthSlot` are intentionally kept more provisional until another AMY
+showcase proves whether this runtime/slot split is the right reusable package
+shape.
