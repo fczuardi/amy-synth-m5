@@ -11,11 +11,12 @@ constexpr uint32_t NOTE_DURATION_MS = 1400;
 constexpr uint8_t AMY_SYNTH_ID = 1;
 constexpr uint8_t AMY_PATCH_JUNO = 1;
 constexpr uint8_t AMY_POLYPHONY = 4;
-constexpr uint8_t TEST_NOTES[] = {48, 52, 55, 60};
+constexpr uint8_t CHORD_NOTES[] = {48, 52, 55, 60};
+constexpr size_t CHORD_SIZES[] = {1, 2, 3, 4};
 constexpr float AMY_NOTE_VELOCITY = 1.0f;
 
 constexpr uint8_t AUDIO_CHANNEL = 0;
-constexpr int32_t OUTPUT_GAIN = 12;
+constexpr int32_t OUTPUT_GAIN = 6;
 constexpr int32_t GATE_GAIN_SCALE = 32767;
 constexpr size_t GATE_RAMP_SAMPLES = 1024;
 
@@ -49,8 +50,8 @@ int32_t gateStep = 0;
 bool amyStarted = false;
 bool noteActive = false;
 bool muted = false;
-size_t nextNoteIndex = 0;
-uint8_t activeMidiNote = 0;
+size_t nextChordSizeIndex = 0;
+size_t activeChordSize = 0;
 
 void drawScreen(const char* stateLabel) {
   M5.Display.fillScreen(TFT_BLACK);
@@ -122,23 +123,40 @@ void noteOn(uint8_t midiNote) {
   event.velocity = AMY_NOTE_VELOCITY;
   amy_add_event(&event);
 
-  activeMidiNote = midiNote;
-  setGateTarget(GATE_GAIN_SCALE);
-  noteActive = true;
-  currentNoteStartedAtMs = millis();
   Serial.printf("amy: note_on midi_note=%u\n", midiNote);
 }
 
-void noteOff() {
+void startChord(size_t chordSize) {
+  for (size_t noteIndex = 0; noteIndex < chordSize; ++noteIndex) {
+    noteOn(CHORD_NOTES[noteIndex]);
+  }
+
+  activeChordSize = chordSize;
+  setGateTarget(GATE_GAIN_SCALE);
+  noteActive = true;
+  currentNoteStartedAtMs = millis();
+  Serial.printf("amy: chord_on voices=%u\n", static_cast<unsigned>(chordSize));
+}
+
+void noteOff(uint8_t midiNote) {
   amy_event event = amy_default_event();
   event.synth = AMY_SYNTH_ID;
-  event.midi_note = activeMidiNote;
+  event.midi_note = midiNote;
   event.velocity = 0.0f;
   amy_add_event(&event);
 
+  Serial.printf("amy: note_off midi_note=%u\n", midiNote);
+}
+
+void stopChord() {
+  for (size_t noteIndex = 0; noteIndex < activeChordSize; ++noteIndex) {
+    noteOff(CHORD_NOTES[noteIndex]);
+  }
+
+  Serial.printf("amy: chord_off voices=%u\n", static_cast<unsigned>(activeChordSize));
+  activeChordSize = 0;
   setGateTarget(0);
   noteActive = false;
-  Serial.printf("amy: note_off midi_note=%u\n", activeMidiNote);
 }
 
 void resetOutputState() {
@@ -153,7 +171,7 @@ void toggleMute() {
   muted = !muted;
   if (muted) {
     if (noteActive) {
-      noteOff();
+      stopChord();
     }
     resetOutputState();
   } else {
@@ -168,14 +186,15 @@ void updateTestNoteGate() {
   const uint32_t nowMs = millis();
 
   if (noteActive && nowMs - currentNoteStartedAtMs >= NOTE_DURATION_MS) {
-    noteOff();
+    stopChord();
   }
 
   if (!noteActive && nowMs - lastNoteOnAtMs >= NOTE_ON_INTERVAL_MS) {
     lastNoteOnAtMs = nowMs;
-    noteOn(TEST_NOTES[nextNoteIndex]);
-    nextNoteIndex = (nextNoteIndex + 1) %
-                    (sizeof(TEST_NOTES) / sizeof(TEST_NOTES[0]));
+    startChord(CHORD_SIZES[nextChordSizeIndex]);
+    nextChordSizeIndex =
+        (nextChordSizeIndex + 1) %
+        (sizeof(CHORD_SIZES) / sizeof(CHORD_SIZES[0]));
   }
 }
 
@@ -288,7 +307,7 @@ void logStatus() {
   }
 
   lastStatusLogAtMs = nowMs;
-  Serial.printf("status: uptime_ms=%lu muted=%s rendered=%lu queued=%lu dropped=%lu blocked=%lu speaker_queue=%u gate=%ld note_active=%s\n",
+  Serial.printf("status: uptime_ms=%lu muted=%s rendered=%lu queued=%lu dropped=%lu blocked=%lu speaker_queue=%u gate=%ld chord_voices=%u note_active=%s\n",
                 static_cast<unsigned long>(nowMs),
                 muted ? "true" : "false",
                 static_cast<unsigned long>(renderedBlockCount),
@@ -297,6 +316,7 @@ void logStatus() {
                 static_cast<unsigned long>(queueBlockedCount),
                 static_cast<unsigned>(M5.Speaker.isPlaying(AUDIO_CHANNEL)),
                 static_cast<long>(gateGain),
+                static_cast<unsigned>(activeChordSize),
                 noteActive ? "true" : "false");
 }
 }  // namespace
