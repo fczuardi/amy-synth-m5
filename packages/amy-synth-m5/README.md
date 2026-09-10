@@ -6,6 +6,31 @@ This package is still maturing, but it is now shaped for consumption outside
 the original probe apps. It keeps the current AMY/M5 boundary explicit while a
 future umbrella showcase tests whether the API is stable enough to publish.
 
+## Simple Monophonic Use
+
+`AmyM5MonophonicSynth` is the convenience facade for the common case: one AMY
+slot, the shared monophonic note policy, and the Core Gray speaker output. The
+application initializes M5Unified first, then uses the facade as its MIDI
+event sink:
+
+```cpp
+AmyM5MonophonicSynth synth;
+
+void setup() {
+  M5.begin(M5.config());
+  synth.begin(1, 1, 19);
+  bleMidiInput.setInstrumentEventSink(&synth);
+}
+
+void loop() {
+  bleMidiInput.update();
+  synth.update();
+}
+```
+
+The lower-level runtime, slot, gate, bridge, and sink headers remain available
+for applications that need different composition defaults.
+
 ## Current Boundaries
 
 `AmyM5SpeakerBridge` owns the low-level audio runtime:
