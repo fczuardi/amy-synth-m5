@@ -1,24 +1,27 @@
-A sandbox repo related to
-https://github.com/fczuardi/embedded-music-experiments meant to be the home of
-initial AMY library explorations against a M5Stack Core Gray v1.0.
+An AMY + M5Stack package/probe repository related to
+https://github.com/fczuardi/embedded-music-experiments. It is currently focused
+on AMY synthesis against a M5Stack Core Gray v1.0.
 
 The development is narrated as readable chapters in `docs/devlog/`, like the
 other related projects in this young ecosystem of experimentation.
 
-Later this repository itself can graduate from probe to package host: renamed,
-given CI/tests, and organized around exported packages if the AMY boundaries
-prove stable enough.
+This repository is graduating in place from probe toward package host. The
+current package candidate is `amy-synth-m5`; the apps and devlog remain here as
+empirical validation.
 
 ## Layout
 
 - `apps/manual-juno-browser/`: the currently validated hardware app.
 - `apps/ble-midi-amy/`: BLE MIDI input routed to AMY through the Core Gray
   speaker path.
-- `lib/amy-probe-runtime/`: internal helpers shared by local probe apps.
+- `packages/amy-synth-m5/`: package candidate for AMY synth control and the
+  M5Stack Core Gray speaker bridge.
+- `ci/consumers/amy-synth-m5/`: package consumer build used by CI.
 - `docs/devlog/`: narrative experiment chapters.
 
-The repository root is intentionally left free for future `packages/` if this
-probe graduates into the package repository instead of spawning a sibling repo.
+The repository is now allowed to graduate in place: if the package boundary
+keeps holding, this repo can be renamed and hardened rather than replaced by a
+sibling package repository.
 
 ## Current State
 
@@ -37,10 +40,10 @@ The current probe is a manual AMY/Juno patch browser:
 While a note is held, buttons B and C temporarily become pitch-bend controls
 for the held note, bending down/up and returning to center on release.
 
-`lib/amy-probe-runtime` is now the internal staging area for AMY boundaries
-that have more than one local consumer. The strongest package candidate is the
-audio bridge: `AmyM5SpeakerBridge` plus `AmyAudioActivityGate` own AMY PCM
-rendering, Core Gray speaker queuing, and idle output shutdown.
+`packages/amy-synth-m5` is the current package candidate. It contains AMY
+control helpers plus the validated Core Gray output path: `AmyM5SpeakerBridge`
+plus `AmyAudioActivityGate` own AMY PCM rendering, Core Gray speaker queuing,
+and idle output shutdown.
 
 `AmyRuntime` and `AmySynthSlot` are also extracted, but remain more
 provisional. The runtime owns AMY-wide controls such as pitch bend. The slot

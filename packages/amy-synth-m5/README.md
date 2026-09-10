@@ -1,10 +1,10 @@
-# amy-probe-runtime
+# amy-synth-m5
 
-Internal AMY runtime helpers shared by the local probe apps.
+AMY synth helpers and M5Stack speaker bridge code shared by the local apps.
 
-This library is package-shaped on purpose, but it is not an exported package
-yet. It exists to keep the two current AMY apps from duplicating the same Core
-Gray audio path while the reusable boundary is still being tested.
+This package is still maturing, but it is now shaped for consumption outside
+the original probe apps. It keeps the current AMY/M5 boundary explicit while a
+future umbrella showcase tests whether the API is stable enough to publish.
 
 ## Current Boundaries
 

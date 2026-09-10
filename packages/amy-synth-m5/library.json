@@ -1,12 +1,12 @@
 {
   "$schema": "https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/schema/library.json",
-  "name": "amy-probe-runtime",
+  "name": "amy-synth-m5",
   "version": "0.1.0",
-  "description": "Internal AMY runtime helpers for amy-synth-probe apps",
+  "description": "AMY synth helpers and M5Stack Core Gray speaker bridge",
   "keywords": ["amy", "synth", "m5stack", "core-gray", "audio"],
   "repository": {
     "type": "git",
-    "url": "https://github.com/fczuardi/amy-synth-probe.git"
+    "url": "https://github.com/fczuardi/amy-synth-m5.git"
   },
   "frameworks": "arduino",
   "platforms": "espressif32",

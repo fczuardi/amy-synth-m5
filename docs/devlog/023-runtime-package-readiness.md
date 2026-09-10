@@ -2,17 +2,17 @@
 
 ## Goal
 
-Check whether `amy-probe-runtime` is mechanically package-shaped enough for the
+Check whether `amy-synth-m5` is mechanically package-shaped enough for the
 next external-consumer experiment. This does not require moving code to a new
 repository: if the AMY work keeps maturing, this probe repository can itself be
 renamed and hardened into the package host.
 
 ## Findings
 
-`pio pkg pack lib/amy-probe-runtime --output .tmp` succeeds and produces:
+`pio pkg pack packages/amy-synth-m5 --output .tmp` succeeds and produces:
 
 ```text
-.tmp/amy-probe-runtime-0.1.0.tar.gz
+.tmp/amy-synth-m5-0.1.0.tar.gz
 ```
 
 The package is mechanically packable, but its boundary is not one indivisible
@@ -40,9 +40,9 @@ The runtime README now documents the two-family package shape so future
 consumers do not accidentally treat AMY control and Core Gray output as one
 universal backend API.
 
-A checked-in consumer was added under `ci/consumers/amy-probe-runtime`,
+A checked-in consumer was added under `ci/consumers/amy-synth-m5`,
 following the same pattern used by `monophonic-instrument`. It depends on the
-package via `file://../../../lib/amy-probe-runtime` and compiles a tiny firmware
+package via `file://../../../packages/amy-synth-m5` and compiles a tiny firmware
 that includes all public headers and exercises the basic runtime, slot, bridge,
 and gate APIs.
 
@@ -77,8 +77,8 @@ That split should wait for the external showcase to put pressure on the API.
 
 ```bash
 mkdir -p .tmp
-pio pkg pack lib/amy-probe-runtime --output .tmp
-# Wrote a tarball to ".tmp/amy-probe-runtime-0.1.0.tar.gz"
+pio pkg pack packages/amy-synth-m5 --output .tmp
+# Wrote a tarball to ".tmp/amy-synth-m5-0.1.0.tar.gz"
 
 cd apps/manual-juno-browser
 pio run
@@ -88,7 +88,7 @@ cd ../ble-midi-amy
 pio run
 # [SUCCESS]
 
-cd ../../ci/consumers/amy-probe-runtime
+cd ../../ci/consumers/amy-synth-m5
 pio run
 # [SUCCESS]
 ```
