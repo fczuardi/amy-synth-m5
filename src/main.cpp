@@ -5,29 +5,15 @@
 namespace {
 constexpr uint32_t SERIAL_BAUD = 115200;
 constexpr uint32_t STATUS_LOG_INTERVAL_MS = 1000;
-constexpr uint32_t NOTE_ON_INTERVAL_MS = 2500;
-constexpr uint32_t NOTE_DURATION_MS = 1400;
-
-struct PatchCandidate {
-  uint8_t patchNumber;
-  const char* name;
-};
+constexpr uint8_t AUDITION_NOTE = 72;
 
 constexpr uint8_t AMY_SYNTH_ID = 1;
 constexpr uint8_t AMY_MONO_VOICES = 1;
-constexpr PatchCandidate PATCH_CANDIDATES[] = {
-    {32, "A51 Lead I"},
-    {33, "A52 Lead II"},
-    {34, "A53 Lead III"},
-    {75, "B24 Bright Pluck"},
-    {76, "B25 Organ Bell"},
-    {112, "B71 Piccolo"},
-};
-constexpr uint8_t TEST_NOTES[] = {72, 76, 79, 84};
+constexpr uint8_t JUNO_PATCH_COUNT = 128;
 constexpr float AMY_NOTE_VELOCITY = 1.0f;
 
 constexpr uint8_t AUDIO_CHANNEL = 0;
-constexpr int32_t OUTPUT_GAIN = 4;
+constexpr int32_t OUTPUT_GAIN = 2;
 constexpr int32_t GATE_GAIN_SCALE = 32767;
 constexpr size_t GATE_RAMP_SAMPLES = 1024;
 
@@ -42,8 +28,6 @@ constexpr size_t STREAM_BUFFER_SAMPLES =
 int16_t streamBuffers[STREAM_BUFFER_COUNT][STREAM_BUFFER_SAMPLES];
 
 uint32_t lastStatusLogAtMs = 0;
-uint32_t lastNoteOnAtMs = 0;
-uint32_t currentNoteStartedAtMs = 0;
 uint32_t lastAmyRenderAtUs = 0;
 
 uint32_t renderedBlockCount = 0;
@@ -62,7 +46,6 @@ bool amyStarted = false;
 bool noteActive = false;
 bool muted = false;
 size_t activePatchIndex = 0;
-size_t nextNoteIndex = 0;
 uint8_t activeMidiNote = 0;
 
 void drawScreen(const char* stateLabel) {
@@ -106,35 +89,28 @@ void startAmyForPcm() {
 
   amy_start(amyConfig);
   amyStarted = true;
-  Serial.printf("amy: juno_patch_audition patches=%u voices=%u\n",
-                static_cast<unsigned>(sizeof(PATCH_CANDIDATES) /
-                                      sizeof(PATCH_CANDIDATES[0])),
-                AMY_MONO_VOICES);
+  Serial.printf("amy: juno_patch_browser patches=%u voices=%u note=%u\n",
+                JUNO_PATCH_COUNT,
+                AMY_MONO_VOICES,
+                AUDITION_NOTE);
 }
 
-const PatchCandidate& activePatch() {
-  return PATCH_CANDIDATES[activePatchIndex];
+uint8_t activePatchNumber() {
+  return static_cast<uint8_t>(activePatchIndex);
 }
 
 void configureActivePatch() {
-  const PatchCandidate& patch = activePatch();
+  const uint8_t patchNumber = activePatchNumber();
   amy_event event = amy_default_event();
   event.synth = AMY_SYNTH_ID;
-  event.patch_number = patch.patchNumber;
+  event.patch_number = patchNumber;
   event.num_voices = AMY_MONO_VOICES;
   amy_add_event(&event);
 
-  Serial.printf("amy: patch_configured synth=%u patch=%u name=\"%s\" voices=%u\n",
+  Serial.printf("amy: patch_configured synth=%u patch=%u voices=%u\n",
                 AMY_SYNTH_ID,
-                patch.patchNumber,
-                patch.name,
+                patchNumber,
                 AMY_MONO_VOICES);
-}
-
-void advancePatch() {
-  activePatchIndex = (activePatchIndex + 1) %
-                     (sizeof(PATCH_CANDIDATES) / sizeof(PATCH_CANDIDATES[0]));
-  configureActivePatch();
 }
 
 void setGateTarget(int32_t targetGain) {
@@ -148,7 +124,7 @@ void setGateTarget(int32_t targetGain) {
 }
 
 void noteOn(uint8_t midiNote) {
-  const PatchCandidate& patch = activePatch();
+  const uint8_t patchNumber = activePatchNumber();
   amy_event event = amy_default_event();
   event.synth = AMY_SYNTH_ID;
   event.midi_note = midiNote;
@@ -158,15 +134,13 @@ void noteOn(uint8_t midiNote) {
   activeMidiNote = midiNote;
   setGateTarget(GATE_GAIN_SCALE);
   noteActive = true;
-  currentNoteStartedAtMs = millis();
-  Serial.printf("amy: note_on patch=%u name=\"%s\" midi_note=%u\n",
-                patch.patchNumber,
-                patch.name,
+  Serial.printf("amy: note_on patch=%u midi_note=%u\n",
+                patchNumber,
                 midiNote);
 }
 
 void noteOff() {
-  const PatchCandidate& patch = activePatch();
+  const uint8_t patchNumber = activePatchNumber();
   amy_event event = amy_default_event();
   event.synth = AMY_SYNTH_ID;
   event.midi_note = activeMidiNote;
@@ -175,14 +149,9 @@ void noteOff() {
 
   setGateTarget(0);
   noteActive = false;
-  Serial.printf("amy: note_off patch=%u name=\"%s\" midi_note=%u\n",
-                patch.patchNumber,
-                patch.name,
+  Serial.printf("amy: note_off patch=%u midi_note=%u\n",
+                patchNumber,
                 activeMidiNote);
-
-  if (nextNoteIndex == 0) {
-    advancePatch();
-  }
 }
 
 void resetOutputState() {
@@ -193,33 +162,35 @@ void resetOutputState() {
   gateStep = 0;
 }
 
-void toggleMute() {
-  muted = !muted;
-  if (muted) {
-    if (noteActive) {
-      noteOff();
-    }
-    resetOutputState();
-  } else {
-    lastNoteOnAtMs = millis() - NOTE_ON_INTERVAL_MS;
-  }
-
-  Serial.printf("amy: muted=%s\n", muted ? "true" : "false");
-  drawScreen(muted ? "muted" : "running");
-}
-
-void updateTestNoteGate() {
-  const uint32_t nowMs = millis();
-
-  if (noteActive && nowMs - currentNoteStartedAtMs >= NOTE_DURATION_MS) {
+void setPatchIndex(size_t patchIndex) {
+  if (noteActive) {
     noteOff();
   }
 
-  if (!noteActive && nowMs - lastNoteOnAtMs >= NOTE_ON_INTERVAL_MS) {
-    lastNoteOnAtMs = nowMs;
-    noteOn(TEST_NOTES[nextNoteIndex]);
-    nextNoteIndex = (nextNoteIndex + 1) %
-                    (sizeof(TEST_NOTES) / sizeof(TEST_NOTES[0]));
+  activePatchIndex = patchIndex;
+  configureActivePatch();
+}
+
+void nextPatch() {
+  setPatchIndex((activePatchIndex + 1) % JUNO_PATCH_COUNT);
+}
+
+void previousPatch() {
+  setPatchIndex((activePatchIndex + JUNO_PATCH_COUNT - 1) % JUNO_PATCH_COUNT);
+}
+
+void updateButtons() {
+  if (M5.BtnA.wasPressed() && !noteActive) {
+    noteOn(AUDITION_NOTE);
+  }
+  if (M5.BtnA.wasReleased() && noteActive) {
+    noteOff();
+  }
+  if (M5.BtnB.wasPressed()) {
+    previousPatch();
+  }
+  if (M5.BtnC.wasPressed()) {
+    nextPatch();
   }
 }
 
@@ -332,8 +303,7 @@ void logStatus() {
   }
 
   lastStatusLogAtMs = nowMs;
-  const PatchCandidate& patch = activePatch();
-  Serial.printf("status: uptime_ms=%lu muted=%s rendered=%lu queued=%lu dropped=%lu blocked=%lu speaker_queue=%u gate=%ld patch=%u name=\"%s\" note_active=%s\n",
+  Serial.printf("status: uptime_ms=%lu muted=%s rendered=%lu queued=%lu dropped=%lu blocked=%lu speaker_queue=%u gate=%ld patch=%u note_active=%s\n",
                 static_cast<unsigned long>(nowMs),
                 muted ? "true" : "false",
                 static_cast<unsigned long>(renderedBlockCount),
@@ -342,8 +312,7 @@ void logStatus() {
                 static_cast<unsigned long>(queueBlockedCount),
                 static_cast<unsigned>(M5.Speaker.isPlaying(AUDIO_CHANNEL)),
                 static_cast<long>(gateGain),
-                patch.patchNumber,
-                patch.name,
+                activePatchNumber(),
                 noteActive ? "true" : "false");
 }
 }  // namespace
@@ -377,11 +346,7 @@ void setup() {
 
 void loop() {
   M5.update();
-  if (M5.BtnA.wasPressed()) {
-    toggleMute();
-  }
-
-  updateTestNoteGate();
+  updateButtons();
   serviceAmyAudio();
   logStatus();
 }
