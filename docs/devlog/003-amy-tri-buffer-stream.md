@@ -92,6 +92,12 @@ mono `playRaw()` output, 12x guarded PCM gain, and no display redraw in the
 audio-running path, the AMY sine probe is now clearly audible without the
 regular interruptions heard earlier.
 
+After validation, the firmware was simplified to keep only the working bridge
+concerns: AMY setup, paced rendering, three output buffers, stereo-to-mono mix,
+12x guarded output gain, a short output gate ramp, Button A mute, and serial
+health counters. Earlier peak diagnostics and verbose display status were
+removed.
+
 Button A toggles mute and unmute so the device can stay flashed during
 listening tests.
 
