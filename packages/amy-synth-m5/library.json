@@ -24,6 +24,11 @@
       "version": "https://github.com/fczuardi/embedded-music-experiments.git#c9bde598cff9"
     },
     {
+      "owner": "fcz2",
+      "name": "monophonic-instrument",
+      "version": "0.1.2"
+    },
+    {
       "name": "AMY Synthesizer",
       "version": "https://github.com/shorepine/amy.git#1.2.108"
     },

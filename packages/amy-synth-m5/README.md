@@ -74,12 +74,10 @@ The manifest declares both AMY and M5Unified because the current package ships
 both families together. If the AMY-control family graduates separately later,
 it should not carry the M5Unified dependency.
 
-`AmyMonophonicInstrumentSink` also requires `monophonic-instrument`. The CI
-consumer currently provides that dependency from the concrete sibling package
-directory checked out at a pinned commit. A custom GitHub Release asset exists
-for `monophonic-instrument`, but its exact URL is too long for PlatformIO
-6.1.19's `library.json` dependency `version` field, so the release asset is not
-yet declared transitively in this manifest.
+`AmyMonophonicInstrumentSink` also requires `monophonic-instrument`. The
+manifest declares the public PlatformIO Registry package
+`fcz2/monophonic-instrument@0.1.2`, so external consumers do not need a sibling
+checkout or a local `file://` dependency for the shared monophonic note policy.
 
 ## Tests
 

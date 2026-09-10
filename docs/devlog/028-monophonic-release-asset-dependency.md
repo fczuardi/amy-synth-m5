@@ -1,4 +1,4 @@
-# Monophonic Release Asset Dependency Limit
+# Monophonic Registry Dependency
 
 ## Goal
 
@@ -68,8 +68,35 @@ amy-synth-m5 package
 -> remote monophonic package tarball
 ```
 
-The CI was kept on the hermetic checkout-based path from slice 027 so it stays
-green while preserving the monorepo boundaries.
+## Registry Resolution
+
+The clean PlatformIO-native solution was publishing
+`packages/monophonic-instrument` to the public PlatformIO Registry as:
+
+```text
+fcz2/monophonic-instrument@0.1.2
+```
+
+With that package available, `packages/amy-synth-m5/library.json` can declare a
+normal registry dependency:
+
+```json
+{
+  "owner": "fcz2",
+  "name": "monophonic-instrument",
+  "version": "0.1.2"
+}
+```
+
+The isolated AMY consumer no longer checks out the sibling repository and no
+longer declares `monophonic-instrument` directly. This proves the intended
+remote dependency path:
+
+```text
+amy-synth-m5 package
+-> manifest dependency
+-> PlatformIO Registry monophonic package
+```
 
 ## Verification
 
@@ -82,9 +109,10 @@ pio run -d apps/ble-midi-amy
 
 The package pack initially failed with the long release URL in `library.json`.
 The no-extension alias installed from `file://` but failed from GitHub as a
-remote dependency. After restoring the slice-027 checkout dependency, the AMY
-package packed and the isolated consumer built again. Both existing firmware
-apps also built with the local explicit monophonic package dependency.
+remote dependency. After publishing to the PlatformIO Registry, the AMY package
+packed and the isolated consumer built with `monophonic-instrument` resolved
+transitively from the Registry. Both existing firmware apps also built with the
+local explicit monophonic package dependency.
 
 ## Limits
 
