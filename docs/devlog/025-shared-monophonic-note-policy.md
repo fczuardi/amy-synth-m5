@@ -80,9 +80,33 @@ Results:
   directory;
 - both local apps built successfully.
 
-## Limits
+## Hardware Observation
 
-This slice has not been hardware-validated yet. The note policy now has the
-better held-note fallback behavior, so the BLE MIDI AMY app may behave slightly
-better than the previous simple replacement sink when two keys are held and the
-latest key is released.
+The BLE MIDI AMY app was hardware-validated on the M5Stack Core Gray after the
+rename to `AmyMonophonicInstrumentSink` and the switch to
+`MonophonicNotePriority`.
+
+Observed behavior:
+
+- BLE disconnect interrupts a sounding note;
+- `M5 Gray AMY` appears as the advertised scan name;
+- reconnecting works;
+- Android bridge plus USB MIDI controller sends notes, velocity, and pitch bend
+  correctly;
+- the speaker idle gate remains responsive;
+- the monophonic multiple-key replacement policy works, including returning to
+  the previously held key and preserving its original velocity;
+- Button A panic interrupts stuck sound, including sound left after
+  disconnecting USB while playing.
+
+This validates the current path:
+
+```text
+BLE MIDI input
+-> InstrumentEventSink
+-> AmyMonophonicInstrumentSink
+-> MonophonicNotePriority
+-> AmyRuntime / AmySynthSlot
+-> AmyM5SpeakerBridge
+-> Core Gray speaker
+```

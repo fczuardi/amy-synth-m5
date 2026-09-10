@@ -21,3 +21,7 @@ pio run --target upload
 
 The firmware sets the BLE device name to `M5 Gray AMY` and logs it at boot.
 Some Android BLE MIDI apps may display the target as `Bluetooth MIDI` instead.
+
+Validated on hardware with Android bridge plus USB MIDI controller: notes,
+velocity, pitch bend, BLE reconnect, idle gate, panic, and held-note fallback
+all work on the Core Gray.
