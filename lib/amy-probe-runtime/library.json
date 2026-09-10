@@ -3,6 +3,11 @@
   "name": "amy-probe-runtime",
   "version": "0.1.0",
   "description": "Internal AMY runtime helpers for amy-synth-probe apps",
+  "keywords": ["amy", "synth", "m5stack", "core-gray", "audio"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fczuardi/amy-synth-probe.git"
+  },
   "frameworks": "arduino",
   "platforms": "espressif32",
   "headers": [
@@ -10,5 +15,24 @@
     "AmySynthSlot.h",
     "AmyM5SpeakerBridge.h",
     "AmyAudioActivityGate.h"
-  ]
+  ],
+  "dependencies": [
+    {
+      "name": "AMY Synthesizer",
+      "version": "https://github.com/shorepine/amy.git#1.2.108"
+    },
+    {
+      "owner": "m5stack",
+      "name": "M5Unified",
+      "version": "0.2.17"
+    }
+  ],
+  "export": {
+    "include": [
+      "README.md",
+      "include/*",
+      "src/*",
+      "library.json"
+    ]
+  }
 }

@@ -5,8 +5,9 @@ initial AMY library explorations against a M5Stack Core Gray v1.0.
 The development is narrated as readable chapters in `docs/devlog/`, like the
 other related projects in this young ecosystem of experimentation.
 
-Later this can graduate to more organized packages, or be renamed, if the
-probing and experimentation shows potential.
+Later this repository itself can graduate from probe to package host: renamed,
+given CI/tests, and organized around exported packages if the AMY boundaries
+prove stable enough.
 
 ## Layout
 
@@ -16,8 +17,8 @@ probing and experimentation shows potential.
 - `lib/amy-probe-runtime/`: internal helpers shared by local probe apps.
 - `docs/devlog/`: narrative experiment chapters.
 
-The repository root is intentionally left free for future `packages/` if an
-AMY boundary matures into reusable exported modules.
+The repository root is intentionally left free for future `packages/` if this
+probe graduates into the package repository instead of spawning a sibling repo.
 
 ## Current State
 

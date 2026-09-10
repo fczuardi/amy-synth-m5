@@ -1,4 +1,5 @@
 .pio/
+.tmp/
 .vscode/
 compile_commands.json
 apps/*/src/idf_component.yml

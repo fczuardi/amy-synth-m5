@@ -43,7 +43,20 @@ Gray audio path while the reusable boundary is still being tested.
 This library does not own BLE MIDI, application UI, patch browsing policy,
 monophonic note replacement, or generic cross-board audio output.
 
-The audio bridge is the strongest extraction candidate so far. `AmyRuntime`
-and `AmySynthSlot` are intentionally kept more provisional until another AMY
-showcase proves whether this runtime/slot split is the right reusable package
-shape.
+## Package Candidate Shape
+
+This package currently contains two families with different portability:
+
+| Family | Components | Assumptions |
+| --- | --- | --- |
+| AMY control | `AmyRuntime`, `AmySynthSlot` | Arduino + AMY event API |
+| Core Gray output | `AmyM5SpeakerBridge`, `AmyAudioActivityGate` | AMY PCM, M5Unified, Core Gray speaker behavior |
+
+The audio bridge is the strongest extraction candidate so far because it
+captures the validated Core Gray PCM path. `AmyRuntime` and `AmySynthSlot` are
+also promising, but they should be tested from an external showcase before
+being treated as a stable public AMY-control API.
+
+The manifest declares both AMY and M5Unified because the current package ships
+both families together. If the AMY-control family graduates separately later,
+it should not carry the M5Unified dependency.
