@@ -52,3 +52,18 @@ Hardware validation target:
 - first note after idle should start without variable catch-up latency;
 - pitch bend behavior should remain the same after normal initialization;
 - drop counters should remain meaningful if queue pressure appears.
+
+## Hardware Observation
+
+The `ble-midi-amy` app was validated on the Core Gray after this change. The
+device entered `amy_audio: idle`, then accepted new BLE MIDI note events without
+queue pressure:
+
+- `dropped=0`;
+- `blocked=0`;
+- `speaker_queue` stayed around 0-1 during normal play;
+- notes after idle started normally.
+
+An excerpt around `uptime_ms=99008..108014` showed repeated idle/wake/note
+cycles with stable counters, confirming that the bridge no longer tries to
+catch up for time spent intentionally asleep.
