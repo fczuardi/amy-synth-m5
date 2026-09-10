@@ -3,10 +3,10 @@
 
 #include "AmyAudioActivityGate.h"
 #include "AmyM5SpeakerBridge.h"
+#include "AmyPerformanceAdapter.h"
 #include "AmyRuntime.h"
 #include "AmySynthSlot.h"
 #include "BleMidiInput.h"
-#include "InstrumentEventSink.h"
 
 namespace {
 constexpr uint32_t STATUS_LOG_INTERVAL_MS = 1000;
@@ -19,82 +19,9 @@ AmyAudioActivityGate audioGate(amyBridge);
 AmyRuntime amyRuntime;
 AmySynthSlot synthSlot;
 BleMidiInput bleMidiInput;
+AmyPerformanceAdapter amyPerformance(amyRuntime, synthSlot, audioGate);
 
 uint32_t lastStatusLogAtMs = 0;
-
-float normalizedVelocity(uint8_t velocity) {
-  return static_cast<float>(velocity) / 127.0f;
-}
-
-class AmyInstrumentSink : public InstrumentEventSink {
- public:
-  void onNoteEvent(const NoteEvent& event) override {
-    if (event.type == NoteEventType::NoteOn && event.velocity > 0) {
-      if (noteActive_) {
-        synthSlot.noteOff(activeMidiNote_);
-      }
-
-      audioGate.wake();
-      synthSlot.noteOn(event.note, normalizedVelocity(event.velocity));
-      activeMidiNote_ = event.note;
-      noteActive_ = true;
-      Serial.printf("amy_midi: note_on channel=%u note=%u velocity=%u patch=%u\n",
-                    event.channel,
-                    event.note,
-                    event.velocity,
-                    synthSlot.patchNumber());
-      return;
-    }
-
-    synthSlot.noteOff(event.note);
-    if (noteActive_ && activeMidiNote_ == event.note) {
-      noteActive_ = false;
-    }
-    audioGate.wake();
-    Serial.printf("amy_midi: note_off channel=%u note=%u velocity=%u patch=%u\n",
-                  event.channel,
-                  event.note,
-                  event.velocity,
-                  synthSlot.patchNumber());
-  }
-
-  void onPitchBendEvent(const PitchBendEvent& event) override {
-    amyRuntime.setGlobalPitchBend(event.value);
-    pitchBend_ = event.value;
-    audioGate.wake();
-    Serial.printf("amy_midi: pitch_bend channel=%u value=%d\n",
-                  event.channel,
-                  event.value);
-  }
-
-  void onDisconnected() override {
-    panic("ble_disconnect");
-  }
-
-  void panic(const char* reason) {
-    amyRuntime.setGlobalPitchBend(0);
-    pitchBend_ = 0;
-    if (noteActive_) {
-      synthSlot.noteOff(activeMidiNote_);
-      noteActive_ = false;
-    }
-    audioGate.wake();
-    Serial.printf("amy_midi: panic reason=%s\n", reason);
-  }
-
-  bool noteActive() const {
-    return noteActive_;
-  }
-
-  int16_t pitchBend() const {
-    return pitchBend_;
-  }
-
- private:
-  uint8_t activeMidiNote_ = 0;
-  int16_t pitchBend_ = 0;
-  bool noteActive_ = false;
-};
 
 class SerialBleDiagnostics : public BleMidiInputDiagnosticSink {
  public:
@@ -155,7 +82,6 @@ class SerialBleDiagnostics : public BleMidiInputDiagnosticSink {
   }
 };
 
-AmyInstrumentSink amyInstrumentSink;
 SerialBleDiagnostics bleDiagnostics;
 
 void configureM5StackCoreGray() {
@@ -199,13 +125,13 @@ void logStatus() {
                 static_cast<unsigned long>(amyBridge.queueBlockedCount()),
                 static_cast<unsigned>(amyBridge.speakerQueueDepth()),
                 synthSlot.patchNumber(),
-                amyInstrumentSink.pitchBend(),
-                amyInstrumentSink.noteActive() ? "true" : "false");
+                amyPerformance.pitchBend(),
+                amyPerformance.noteActive() ? "true" : "false");
 }
 
 void updateAudioBridge() {
   const bool wasAwake = audioGate.awake();
-  const bool isAwake = audioGate.update(amyInstrumentSink.noteActive());
+  const bool isAwake = audioGate.update(amyPerformance.noteActive());
   if (wasAwake && !isAwake) {
     Serial.println("amy_audio: idle");
   }
@@ -232,7 +158,7 @@ void setup() {
   amyRuntime.begin(AMY_SYNTH_ID);
   synthSlot.begin(AMY_SYNTH_ID, AMY_MONO_VOICES, INITIAL_JUNO_PATCH);
 
-  bleMidiInput.setInstrumentEventSink(&amyInstrumentSink);
+  bleMidiInput.setInstrumentEventSink(&amyPerformance);
   bleMidiInput.setDiagnosticSink(&bleDiagnostics);
   bleMidiInput.begin();
 }
@@ -243,7 +169,8 @@ void loop() {
   updateAudioBridge();
 
   if (M5.BtnA.wasPressed()) {
-    amyInstrumentSink.panic("button_a");
+    amyPerformance.panic();
+    Serial.println("amy_midi: panic reason=button_a");
   }
 
   logStatus();

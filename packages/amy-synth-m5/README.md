@@ -38,10 +38,20 @@ future umbrella showcase tests whether the API is stable enough to publish.
 - selects built-in patches;
 - sends note on/off events.
 
+`AmyPerformanceAdapter` applies the shared monophonic performance policy to AMY:
+
+- implements `InstrumentEventSink` from `firmware-contracts`;
+- uses `MonophonicNotePriority` from `monophonic-instrument`;
+- maps monophonic note actions to AMY note on/off events;
+- maps MIDI velocity to AMY note velocity;
+- maps `PitchBendEvent` to AMY's global pitch bend through `AmyRuntime`;
+- wakes the audio gate whenever a musical event may produce output;
+- exposes active-note and pitch-bend state for diagnostics.
+
 ## Non-Goals
 
 This library does not own BLE MIDI, application UI, patch browsing policy,
-monophonic note replacement, or generic cross-board audio output.
+polyphonic allocation policy, or generic cross-board audio output.
 
 ## Package Candidate Shape
 
@@ -49,7 +59,7 @@ This package currently contains two families with different portability:
 
 | Family | Components | Assumptions |
 | --- | --- | --- |
-| AMY control | `AmyRuntime`, `AmySynthSlot` | Arduino + AMY event API |
+| AMY control | `AmyRuntime`, `AmySynthSlot`, `AmyPerformanceAdapter` | Arduino + firmware contracts + monophonic note policy + AMY event API |
 | Core Gray output | `AmyM5SpeakerBridge`, `AmyAudioActivityGate` | AMY PCM, M5Unified, Core Gray speaker behavior |
 
 The audio bridge is the strongest extraction candidate so far because it

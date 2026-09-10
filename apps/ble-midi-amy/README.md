@@ -4,7 +4,8 @@ Minimal BLE MIDI AMY synth probe for the M5Stack Core Gray.
 
 The app consumes the existing `ble-midi-input` package and routes shared
 `NoteEvent` and `PitchBendEvent` objects to AMY through the local
-`amy-synth-m5` package candidate.
+`amy-synth-m5` package candidate. The AMY package reuses
+`MonophonicNotePriority` from `monophonic-instrument` for held-note priority.
 
 Build:
 
