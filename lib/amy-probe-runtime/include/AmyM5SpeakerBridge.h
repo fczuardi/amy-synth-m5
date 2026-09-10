@@ -4,10 +4,23 @@
 #include <AMY-Arduino.h>
 #include <M5Unified.h>
 
+// Core Gray AMY PCM output bridge.
+//
+// AMY renders signed 16-bit stereo PCM blocks. The original Core Gray speaker
+// path is owned by M5Unified, so this bridge keeps AMY in AMY_AUDIO_IS_NONE
+// mode, renders blocks on AMY's cadence, mixes them to mono, and queues them
+// into M5.Speaker.playRaw().
 class AmyM5SpeakerBridge {
  public:
   void begin();
+
+  // Render and queue at most a small catch-up burst. Apps should call this
+  // frequently while sound is active or while a release tail is still audible.
   void update();
+
+  // Stop the M5Unified output channel and discard any partially-filled buffer.
+  // This is separate from AMY note state; app policy decides when silence has
+  // lasted long enough to close the Core Gray speaker path.
   void stopOutput();
 
   bool amyStarted() const;
