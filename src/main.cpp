@@ -8,24 +8,10 @@ constexpr uint32_t STATUS_LOG_INTERVAL_MS = 1000;
 constexpr uint32_t NOTE_ON_INTERVAL_MS = 2500;
 constexpr uint32_t NOTE_DURATION_MS = 1400;
 
-struct TestTone {
-  const char* label;
-  uint8_t wave;
-  uint8_t midiNote;
-};
-
-constexpr TestTone TEST_TONES[] = {
-    {"sine_c4", SINE, 60},
-    {"triangle_c4", TRIANGLE, 60},
-    {"square_c4", PULSE, 60},
-    {"sine_c5", SINE, 72},
-    {"triangle_c5", TRIANGLE, 72},
-    {"square_c5", PULSE, 72},
-};
-
+constexpr uint8_t CHORD_NOTES[] = {72, 76, 79, 84};
+constexpr size_t CHORD_SIZES[] = {1, 2, 3, 4};
 constexpr float AMY_NOTE_VELOCITY = 1.0f;
 constexpr uint8_t OSCILLATOR_BASE = 0;
-constexpr float SQUARE_DUTY = 0.5f;
 
 constexpr uint8_t AUDIO_CHANNEL = 0;
 constexpr int32_t OUTPUT_GAIN = 6;
@@ -62,8 +48,8 @@ int32_t gateStep = 0;
 bool amyStarted = false;
 bool noteActive = false;
 bool muted = false;
-size_t nextToneIndex = 0;
-const TestTone* activeTone = nullptr;
+size_t nextChordSizeIndex = 0;
+size_t activeChordSize = 0;
 
 void drawScreen(const char* stateLabel) {
   M5.Display.fillScreen(TFT_BLACK);
@@ -76,7 +62,7 @@ void drawScreen(const char* stateLabel) {
   M5.Display.setTextSize(1);
   M5.Display.println();
   M5.Display.println("Mode: AMY stream");
-  M5.Display.println("Patch: waveform probe");
+  M5.Display.println("Patch: triangle chord");
   M5.Display.print("Muted: ");
   M5.Display.println(muted ? "yes" : "no");
   M5.Display.print("State: ");
@@ -106,8 +92,8 @@ void startAmyForPcm() {
 
   amy_start(amyConfig);
   amyStarted = true;
-  Serial.printf("amy: waveform_probe tones=%u\n",
-                static_cast<unsigned>(sizeof(TEST_TONES) / sizeof(TEST_TONES[0])));
+  Serial.printf("amy: triangle_chord_probe oscillators=%u\n",
+                static_cast<unsigned>(sizeof(CHORD_NOTES) / sizeof(CHORD_NOTES[0])));
 }
 
 void setGateTarget(int32_t targetGain) {
@@ -124,47 +110,53 @@ float midiNoteToFrequency(uint8_t midiNote) {
   return 440.0f * powf(2.0f, (static_cast<float>(midiNote) - 69.0f) / 12.0f);
 }
 
-void noteOn(const TestTone& tone) {
+void noteOn(size_t noteIndex) {
+  const uint8_t midiNote = CHORD_NOTES[noteIndex];
+  const uint8_t oscillatorId = OSCILLATOR_BASE + noteIndex;
   amy_event event = amy_default_event();
-  event.osc = OSCILLATOR_BASE;
-  event.wave = tone.wave;
-  event.freq_coefs[COEF_CONST] = midiNoteToFrequency(tone.midiNote);
-  if (tone.wave == PULSE) {
-    event.duty_coefs[COEF_CONST] = SQUARE_DUTY;
-  }
+  event.osc = oscillatorId;
+  event.wave = TRIANGLE;
+  event.freq_coefs[COEF_CONST] = midiNoteToFrequency(midiNote);
   event.velocity = AMY_NOTE_VELOCITY;
   amy_add_event(&event);
 
-  Serial.printf("amy: tone_on label=%s wave=%u midi_note=%u\n",
-                tone.label,
-                static_cast<unsigned>(tone.wave),
-                tone.midiNote);
+  Serial.printf("amy: triangle_on osc=%u midi_note=%u\n",
+                oscillatorId,
+                midiNote);
 }
 
-void startTone(const TestTone& tone) {
-  noteOn(tone);
-  activeTone = &tone;
+void startChord(size_t chordSize) {
+  for (size_t noteIndex = 0; noteIndex < chordSize; ++noteIndex) {
+    noteOn(noteIndex);
+  }
+
+  activeChordSize = chordSize;
   setGateTarget(GATE_GAIN_SCALE);
   noteActive = true;
   currentNoteStartedAtMs = millis();
+  Serial.printf("amy: chord_on voices=%u\n", static_cast<unsigned>(chordSize));
 }
 
-void noteOff() {
+void noteOff(size_t noteIndex) {
+  const uint8_t midiNote = CHORD_NOTES[noteIndex];
+  const uint8_t oscillatorId = OSCILLATOR_BASE + noteIndex;
   amy_event event = amy_default_event();
-  event.osc = OSCILLATOR_BASE;
+  event.osc = oscillatorId;
   event.velocity = 0.0f;
   amy_add_event(&event);
 
-  if (activeTone != nullptr) {
-    Serial.printf("amy: tone_off label=%s midi_note=%u\n",
-                  activeTone->label,
-                  activeTone->midiNote);
-  }
+  Serial.printf("amy: triangle_off osc=%u midi_note=%u\n",
+                oscillatorId,
+                midiNote);
 }
 
-void stopTone() {
-  noteOff();
-  activeTone = nullptr;
+void stopChord() {
+  for (size_t noteIndex = 0; noteIndex < activeChordSize; ++noteIndex) {
+    noteOff(noteIndex);
+  }
+
+  Serial.printf("amy: chord_off voices=%u\n", static_cast<unsigned>(activeChordSize));
+  activeChordSize = 0;
   setGateTarget(0);
   noteActive = false;
 }
@@ -181,7 +173,7 @@ void toggleMute() {
   muted = !muted;
   if (muted) {
     if (noteActive) {
-      stopTone();
+      stopChord();
     }
     resetOutputState();
   } else {
@@ -196,14 +188,15 @@ void updateTestNoteGate() {
   const uint32_t nowMs = millis();
 
   if (noteActive && nowMs - currentNoteStartedAtMs >= NOTE_DURATION_MS) {
-    stopTone();
+    stopChord();
   }
 
   if (!noteActive && nowMs - lastNoteOnAtMs >= NOTE_ON_INTERVAL_MS) {
     lastNoteOnAtMs = nowMs;
-    startTone(TEST_TONES[nextToneIndex]);
-    nextToneIndex =
-        (nextToneIndex + 1) % (sizeof(TEST_TONES) / sizeof(TEST_TONES[0]));
+    startChord(CHORD_SIZES[nextChordSizeIndex]);
+    nextChordSizeIndex =
+        (nextChordSizeIndex + 1) %
+        (sizeof(CHORD_SIZES) / sizeof(CHORD_SIZES[0]));
   }
 }
 
@@ -316,7 +309,7 @@ void logStatus() {
   }
 
   lastStatusLogAtMs = nowMs;
-  Serial.printf("status: uptime_ms=%lu muted=%s rendered=%lu queued=%lu dropped=%lu blocked=%lu speaker_queue=%u gate=%ld tone=%s note_active=%s\n",
+  Serial.printf("status: uptime_ms=%lu muted=%s rendered=%lu queued=%lu dropped=%lu blocked=%lu speaker_queue=%u gate=%ld chord_voices=%u note_active=%s\n",
                 static_cast<unsigned long>(nowMs),
                 muted ? "true" : "false",
                 static_cast<unsigned long>(renderedBlockCount),
@@ -325,7 +318,7 @@ void logStatus() {
                 static_cast<unsigned long>(queueBlockedCount),
                 static_cast<unsigned>(M5.Speaker.isPlaying(AUDIO_CHANNEL)),
                 static_cast<long>(gateGain),
-                activeTone == nullptr ? "none" : activeTone->label,
+                static_cast<unsigned>(activeChordSize),
                 noteActive ? "true" : "false");
 }
 }  // namespace
