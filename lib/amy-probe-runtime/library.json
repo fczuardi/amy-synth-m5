@@ -1,0 +1,9 @@
+{
+  "$schema": "https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/schema/library.json",
+  "name": "amy-probe-runtime",
+  "version": "0.1.0",
+  "description": "Internal AMY runtime helpers for amy-synth-probe apps",
+  "frameworks": "arduino",
+  "platforms": "espressif32",
+  "headers": ["AmySynthVoice.h", "AmyM5SpeakerBridge.h"]
+}

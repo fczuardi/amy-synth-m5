@@ -11,10 +11,13 @@ probing and experimentation shows potential.
 ## Layout
 
 - `apps/manual-juno-browser/`: the currently validated hardware app.
+- `apps/ble-midi-amy/`: BLE MIDI input routed to AMY through the Core Gray
+  speaker path.
+- `lib/amy-probe-runtime/`: internal helpers shared by local probe apps.
 - `docs/devlog/`: narrative experiment chapters.
 
-The repository root is intentionally left free for future `packages/` if the
-AMY wrapper or PCM bridge matures into reusable modules.
+The repository root is intentionally left free for future `packages/` if an
+AMY boundary matures into reusable exported modules.
 
 ## Current State
 

@@ -1,4 +1,4 @@
-#include "amy_synth_voice.h"
+#include "AmySynthVoice.h"
 
 #include <AMY-Arduino.h>
 

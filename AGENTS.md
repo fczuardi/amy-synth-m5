@@ -23,3 +23,5 @@ risks before any architecture is promoted.
   `embedded-music-experiments` only after the engine boundary is understood.
 - Do not design generic audio abstractions before a real AMY output path makes
   the repeated shape visible.
+- `lib/amy-probe-runtime/` is internal to this repo. Do not treat it as a
+  package contract until more than one real app proves a stable boundary.
