@@ -28,9 +28,9 @@ BLE MIDI controller
 -> M5.Speaker
 ```
 
-The app advertises as `M5 Gray AMY`, uses AMY synth slot 1, and starts on Juno
-patch 19. Program Change and Control Change are intentionally ignored for this
-first slice.
+The app sets the BLE device name to `M5 Gray AMY`, uses AMY synth slot 1, and
+starts on Juno patch 19. Program Change and Control Change are intentionally
+ignored for this first slice.
 
 The app also introduces an internal `amy-probe-runtime` library under `lib/`.
 It is not an exported package. It only avoids duplicating the AMY synth wrapper
@@ -73,7 +73,22 @@ pio device monitor
 
 Expected observation:
 
-- the device advertises as `M5 Gray AMY`;
+- boot logs show `ble_midi: advertising device=M5 Gray AMY`;
 - MIDI Note On/Off controls AMY patch 19;
 - MIDI Pitch Bend bends the active AMY note;
 - button A sends a local panic for the latest active note.
+
+## Hardware Observation
+
+Uploading at `1500000` baud failed on the Core Gray during the flash connection
+check after the baud-rate switch. The app now uses `upload_speed = 460800`,
+which keeps uploads conservative for this older board.
+
+Android SynthBridge displayed the connectable target as `Bluetooth MIDI`, not
+`M5 Gray AMY`. A Linux desktop scan showed `M5 Gray Speaker`, likely cached from
+an earlier build. The firmware still logs the configured name at boot, so the UI
+label should be treated as scanner/app-specific.
+
+Connecting to `Bluetooth MIDI` from SynthBridge succeeded. The Android virtual
+controller sent Note On/Off and Pitch Bend values to the hardware, validating
+the `BleMidiInput -> AmyInstrumentSink -> AmySynthVoice` path.
