@@ -23,6 +23,12 @@ class AmyM5SpeakerBridge {
   // lasted long enough to close the Core Gray speaker path.
   void stopOutput();
 
+  // Re-open the output timing window after an intentional idle period.
+  //
+  // This discards partial PCM and resets AMY block pacing so the next note does
+  // not try to catch up for time spent deliberately asleep.
+  void resumeOutput();
+
   bool amyStarted() const;
   uint32_t renderedBlockCount() const;
   uint32_t queuedBufferCount() const;

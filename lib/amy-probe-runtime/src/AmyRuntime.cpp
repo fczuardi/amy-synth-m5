@@ -9,14 +9,15 @@ void AmyRuntime::begin(uint8_t controlSynthId) {
 
 void AmyRuntime::setGlobalPitchBend(int16_t value) {
   globalPitchBend_ = clampedPitchBend(value);
+  if (!begun_) {
+    return;
+  }
 
   amy_event event = amy_default_event();
-  if (begun_) {
-    // AMY applies pitch bend globally, but its MIDI path still tags the event
-    // with the source channel/synth. Preserve that routing metadata here.
-    event.synth = controlSynthId_;
-    event.note_source_channel = controlSynthId_;
-  }
+  // AMY applies pitch bend globally, but its MIDI path still tags the event
+  // with the source channel/synth. Preserve that routing metadata here.
+  event.synth = controlSynthId_;
+  event.note_source_channel = controlSynthId_;
   event.pitch_bend = pitchBendOctaves(globalPitchBend_);
   amy_add_event(&event);
 }

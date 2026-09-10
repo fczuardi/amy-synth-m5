@@ -15,6 +15,7 @@ Gray audio path while the reusable boundary is still being tested.
 - mixes AMY stereo `int16_t` PCM to mono;
 - applies the empirically validated Core Gray output gain;
 - queues fixed-size buffers into `M5.Speaker.playRaw()`;
+- resets block pacing when output resumes after an intentional idle period;
 - exposes diagnostic counters for rendered, queued, dropped, and blocked
   buffers.
 
@@ -28,6 +29,7 @@ Gray audio path while the reusable boundary is still being tested.
 
 - stores the synth/channel id used as routing metadata for runtime events;
 - sends AMY's global pitch-bend event;
+- ignores outgoing commands until `begin()` establishes that routing metadata;
 - keeps the current global bend value for diagnostics.
 
 `AmySynthSlot` owns a thin AMY musical-control slot:

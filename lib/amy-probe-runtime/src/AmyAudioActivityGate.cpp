@@ -4,6 +4,10 @@ AmyAudioActivityGate::AmyAudioActivityGate(AmyM5SpeakerBridge& bridge)
     : bridge_(bridge) {}
 
 void AmyAudioActivityGate::wake(uint32_t tailMs) {
+  if (!awake_) {
+    bridge_.resumeOutput();
+  }
+
   awakeUntilMs_ = millis() + tailMs;
   awake_ = true;
 }

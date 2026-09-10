@@ -30,6 +30,11 @@ void AmyM5SpeakerBridge::stopOutput() {
   M5.Speaker.stop(AUDIO_CHANNEL);
 }
 
+void AmyM5SpeakerBridge::resumeOutput() {
+  activeBufferSamples_ = 0;
+  lastAmyRenderAtUs_ = micros();
+}
+
 bool AmyM5SpeakerBridge::amyStarted() const {
   return amyStarted_;
 }
@@ -96,7 +101,6 @@ bool AmyM5SpeakerBridge::queueActiveBuffer() {
                                          AUDIO_CHANNEL,
                                          false);
   if (!queued) {
-    droppedBufferCount_++;
     return false;
   }
 
