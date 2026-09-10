@@ -2,6 +2,8 @@
 #include <AMY-Arduino.h>
 #include <M5Unified.h>
 
+#include "amy_mono_voice.h"
+
 namespace {
 constexpr uint32_t SERIAL_BAUD = 115200;
 constexpr uint32_t STATUS_LOG_INTERVAL_MS = 1000;
@@ -43,10 +45,9 @@ int32_t gateTargetGain = 0;
 int32_t gateStep = 0;
 
 bool amyStarted = false;
-bool noteActive = false;
 bool muted = false;
 size_t activePatchIndex = 0;
-uint8_t activeMidiNote = 0;
+AmyMonoVoice monoVoice;
 
 void drawScreen(const char* stateLabel) {
   M5.Display.fillScreen(TFT_BLACK);
@@ -101,11 +102,7 @@ uint8_t activePatchNumber() {
 
 void configureActivePatch() {
   const uint8_t patchNumber = activePatchNumber();
-  amy_event event = amy_default_event();
-  event.synth = AMY_SYNTH_ID;
-  event.patch_number = patchNumber;
-  event.num_voices = AMY_MONO_VOICES;
-  amy_add_event(&event);
+  monoVoice.setPatch(patchNumber);
 
   Serial.printf("amy: patch_configured synth=%u patch=%u voices=%u\n",
                 AMY_SYNTH_ID,
@@ -123,35 +120,21 @@ void setGateTarget(int32_t targetGain) {
   }
 }
 
-void noteOn(uint8_t midiNote) {
-  const uint8_t patchNumber = activePatchNumber();
-  amy_event event = amy_default_event();
-  event.synth = AMY_SYNTH_ID;
-  event.midi_note = midiNote;
-  event.velocity = AMY_NOTE_VELOCITY;
-  amy_add_event(&event);
-
-  activeMidiNote = midiNote;
+void startAuditionNote() {
+  monoVoice.noteOn(AUDITION_NOTE, AMY_NOTE_VELOCITY);
   setGateTarget(GATE_GAIN_SCALE);
-  noteActive = true;
   Serial.printf("amy: note_on patch=%u midi_note=%u\n",
-                patchNumber,
-                midiNote);
+                monoVoice.patchNumber(),
+                AUDITION_NOTE);
 }
 
-void noteOff() {
-  const uint8_t patchNumber = activePatchNumber();
-  amy_event event = amy_default_event();
-  event.synth = AMY_SYNTH_ID;
-  event.midi_note = activeMidiNote;
-  event.velocity = 0.0f;
-  amy_add_event(&event);
-
+void stopAuditionNote() {
+  const uint8_t releasedNote = monoVoice.activeMidiNote();
+  monoVoice.noteOff();
   setGateTarget(0);
-  noteActive = false;
   Serial.printf("amy: note_off patch=%u midi_note=%u\n",
-                patchNumber,
-                activeMidiNote);
+                monoVoice.patchNumber(),
+                releasedNote);
 }
 
 void resetOutputState() {
@@ -163,8 +146,8 @@ void resetOutputState() {
 }
 
 void setPatchIndex(size_t patchIndex) {
-  if (noteActive) {
-    noteOff();
+  if (monoVoice.noteActive()) {
+    stopAuditionNote();
   }
 
   activePatchIndex = patchIndex;
@@ -180,11 +163,11 @@ void previousPatch() {
 }
 
 void updateButtons() {
-  if (M5.BtnA.wasPressed() && !noteActive) {
-    noteOn(AUDITION_NOTE);
+  if (M5.BtnA.wasPressed() && !monoVoice.noteActive()) {
+    startAuditionNote();
   }
-  if (M5.BtnA.wasReleased() && noteActive) {
-    noteOff();
+  if (M5.BtnA.wasReleased() && monoVoice.noteActive()) {
+    stopAuditionNote();
   }
   if (M5.BtnB.wasPressed()) {
     previousPatch();
@@ -313,7 +296,7 @@ void logStatus() {
                 static_cast<unsigned>(M5.Speaker.isPlaying(AUDIO_CHANNEL)),
                 static_cast<long>(gateGain),
                 activePatchNumber(),
-                noteActive ? "true" : "false");
+                monoVoice.noteActive() ? "true" : "false");
 }
 }  // namespace
 
@@ -339,7 +322,11 @@ void setup() {
   configureSpeaker();
   drawScreen("starting AMY");
   startAmyForPcm();
-  configureActivePatch();
+  monoVoice.begin(AMY_SYNTH_ID, AMY_MONO_VOICES, activePatchNumber());
+  Serial.printf("amy: patch_configured synth=%u patch=%u voices=%u\n",
+                AMY_SYNTH_ID,
+                activePatchNumber(),
+                AMY_MONO_VOICES);
   lastAmyRenderAtUs = micros();
   drawScreen("running");
 }
