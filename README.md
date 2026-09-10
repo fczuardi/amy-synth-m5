@@ -22,9 +22,12 @@ The current probe is a manual AMY/Juno patch browser:
 - button C selects the next patch;
 - all 128 built-in Juno patches can be auditioned on the same note.
 
+While a note is held, buttons B and C temporarily become pitch-bend controls
+for the held note, bending down/up and returning to center on release.
+
 `AmySynthVoice` is the first extracted boundary. It is intentionally thin: it
-owns one AMY synth slot and translates patch/note calls into AMY events, while
-`main.cpp` remains the disposable hardware harness.
+owns one AMY synth slot and translates patch, note, and pitch-bend calls into
+AMY events, while `main.cpp` remains the disposable hardware harness.
 
 Design notes and next candidate slices live in the devlog chapters under
 `docs/devlog/`.
