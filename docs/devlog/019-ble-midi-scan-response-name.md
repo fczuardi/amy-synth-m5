@@ -50,3 +50,13 @@ response includes:
 ```text
 Name (complete): M5 Gray AMY
 ```
+
+## Hardware Observation
+
+The AMY BLE MIDI firmware was uploaded to the M5Stack Core Gray after pinning
+`ble-midi-input@0.1.4`. The configured `M5 Gray AMY` name appeared during BLE
+scanning, confirming that the scan-response-name fix works for the AMY app.
+
+The AMY BLE path is validated on hardware: the app advertises with the expected
+name, accepts BLE MIDI input, and drives AMY audio through the Core Gray speaker
+path.
