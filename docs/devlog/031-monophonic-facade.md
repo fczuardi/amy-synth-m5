@@ -26,9 +26,13 @@ pio pkg pack packages/amy-synth-m5 --output /tmp
 ```
 
 The umbrella Showcase 3 was compiled against the updated package from a local
-dependency path before publication. The final showcase manifest remains on
-the published package version until `amy-synth-m5` 0.1.2 is released.
+dependency path before publication. Version `amy-synth-m5` 0.1.2 was then
+published to the PlatformIO Registry and the showcase manifest was updated to
+consume that published version.
 
 No new hardware validation was performed in this slice. The previous
 hardware-validated MIDI, velocity, pitch-bend, reconnect, panic, and idle-gate
 behavior remains the reference behavior for the facade migration.
+
+The Core Gray firmware uses approximately 99% of available IRAM, leaving about
+1% free. This is the main current limit for adding AMY functionality.

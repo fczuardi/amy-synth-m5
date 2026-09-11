@@ -2,9 +2,10 @@
 
 AMY synth helpers and M5Stack speaker bridge code shared by the local apps.
 
-This package is still maturing, but it is now shaped for consumption outside
-the original probe apps. It keeps the current AMY/M5 boundary explicit while a
-future umbrella showcase tests whether the API is stable enough to publish.
+This package is still maturing, but it is published for consumption outside
+the original probe apps. The umbrella Showcase 3 exercises its simple
+monophonic facade, while the lower-level AMY/M5 boundaries remain available for
+further experiments.
 
 ## Simple Monophonic Use
 
@@ -90,10 +91,9 @@ This package currently contains two families with different portability:
 | AMY control | `AmyRuntime`, `AmySynthSlot`, `AmyMonophonicInstrumentSink` | Arduino + firmware contracts + monophonic note policy + AMY event API |
 | Core Gray output | `AmyM5SpeakerBridge`, `AmyAudioActivityGate` | AMY PCM, M5Unified, Core Gray speaker behavior |
 
-The audio bridge is the strongest extraction candidate so far because it
-captures the validated Core Gray PCM path. `AmyRuntime` and `AmySynthSlot` are
-also promising, but they should be tested from an external showcase before
-being treated as a stable public AMY-control API.
+The audio bridge captures the validated Core Gray PCM path. `AmyRuntime` and
+`AmySynthSlot` remain lower-level APIs for experiments that need more control;
+the external Showcase 3 currently consumes the higher-level monophonic facade.
 
 The manifest declares both AMY and M5Unified because the current package ships
 both families together. If the AMY-control family graduates separately later,
