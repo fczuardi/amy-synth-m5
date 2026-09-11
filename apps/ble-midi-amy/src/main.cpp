@@ -37,12 +37,6 @@ class SerialBleDiagnostics : public BleMidiInputDiagnosticSink {
     Serial.println("ble_midi: disconnected");
   }
 
-  void onBleMidiActiveSensing(uint32_t count, uint32_t activityAtMs) override {
-    Serial.printf("ble_midi: active_sensing count=%lu activity_ms=%lu\n",
-                  static_cast<unsigned long>(count),
-                  static_cast<unsigned long>(activityAtMs));
-  }
-
   void onBleMidiNoteEvent(
       const NoteEvent& event,
       uint32_t activityAtMs) override {

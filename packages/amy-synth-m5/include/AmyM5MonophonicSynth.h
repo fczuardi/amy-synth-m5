@@ -9,16 +9,30 @@
 #include "AmySynthSlot.h"
 #include "InstrumentEventSink.h"
 
-// Convenient Core Gray AMY composition for the common monophonic case.
+// Convenient Core Gray AMY composition for one global monophonic instrument.
 //
 // The application still initializes M5Unified before calling begin(). This
 // facade owns the AMY runtime, one synth slot, the M5 speaker bridge, the
-// activity gate, and the monophonic event policy as one usable instrument.
+// activity gate, and one monophonic event policy. In the optional two-patch
+// mode, the MIDI channel selects the patch for the next note.
 class AmyM5MonophonicSynth : public InstrumentEventSink {
  public:
+  // MIDI event channels are preserved as zero-based status nibbles: channel
+  // 0 is the physical MIDI channel 1, and channel 1 is physical channel 2.
+  static constexpr uint8_t FIRST_MIDI_CHANNEL = 0;
+  static constexpr uint8_t SECOND_MIDI_CHANNEL = 1;
+
   AmyM5MonophonicSynth();
 
+  // Configures one patch for a global monophonic instrument.
   void begin(uint8_t synthId, uint8_t voiceCount, uint8_t initialPatch);
+
+  // Configures two patches selected by the raw MIDI channels 0 and 1.
+  void begin(
+      uint8_t firstSynthId,
+      uint8_t voiceCount,
+      uint8_t firstPatch,
+      uint8_t secondPatch);
   void update();
 
   void setPatch(uint8_t patchNumber);
@@ -30,6 +44,7 @@ class AmyM5MonophonicSynth : public InstrumentEventSink {
 
   bool noteActive() const;
   uint8_t patchNumber() const;
+  uint8_t patchNumberForChannel(uint8_t midiChannel) const;
   int16_t pitchBend() const;
 
  private:
@@ -38,4 +53,8 @@ class AmyM5MonophonicSynth : public InstrumentEventSink {
   AmyRuntime runtime_;
   AmySynthSlot synthSlot_;
   AmyMonophonicInstrumentSink instrumentSink_;
+  uint8_t firstPatch_ = 0;
+  uint8_t secondPatch_ = 0;
+  uint8_t selectedPatch_ = 0;
+  bool secondPatchEnabled_ = false;
 };

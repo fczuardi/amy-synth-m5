@@ -3,16 +3,16 @@
 AMY synth helpers and M5Stack speaker bridge code shared by the local apps.
 
 This package is still maturing, but it is published for consumption outside
-the original probe apps. The umbrella Showcase 3 exercises its simple
-monophonic facade, while the lower-level AMY/M5 boundaries remain available for
-further experiments.
+the original probe apps. The umbrella Showcase 3 exercises its one-channel
+facade, while the lower-level AMY/M5 boundaries remain available for further
+experiments.
 
 ## Simple Monophonic Use
 
 `AmyM5MonophonicSynth` is the convenience facade for the common case: one AMY
-slot, the shared monophonic note policy, and the Core Gray speaker output. The
-application initializes M5Unified first, then uses the facade as its MIDI
-event sink:
+slot, one monophonic note policy, and the Core Gray speaker output. The
+application initializes M5Unified first, then uses the facade as its MIDI event
+sink:
 
 ```cpp
 AmyM5MonophonicSynth synth;
@@ -31,6 +31,36 @@ void loop() {
 
 The lower-level runtime, slot, gate, bridge, and sink headers remain available
 for applications that need different composition defaults.
+
+## Two-Channel Experiment
+
+The same `AmyM5MonophonicSynth` facade can also be configured with two MIDI
+channels. Each channel has its own patch and monophonic note policy, while the
+AMY runtime and Core Gray speaker path are shared:
+
+```cpp
+AmyM5MonophonicSynth synth;
+
+void setup() {
+  M5.begin(M5.config());
+  synth.begin(1, 1, 19, 24);
+  bleMidiInput.setInstrumentEventSink(&synth);
+}
+
+void loop() {
+  bleMidiInput.update();
+  synth.update();
+}
+```
+
+The first argument selects the AMY slot for MIDI event channel 0 (physical MIDI
+channel 1); event channel 1 (physical MIDI channel 2) uses the next slot. MIDI
+event channels are deliberately preserved as zero-based status nibbles. Other
+channels are ignored in this two-channel configuration. Pitch bend remains a
+single global AMY control and therefore bends both channels together.
+
+This two-channel configuration is an experimental extension of the facade and
+has not yet replaced the published one-channel package or Showcase 3 baseline.
 
 ## Current Boundaries
 
