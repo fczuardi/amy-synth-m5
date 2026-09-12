@@ -5,7 +5,6 @@
 #include "BleMidiInput.h"
 
 namespace {
-constexpr uint32_t STATUS_LOG_INTERVAL_MS = 1000;
 constexpr uint8_t FIRST_SYNTH_ID = 1;
 constexpr uint8_t MONO_VOICES = 1;
 constexpr uint8_t FIRST_PATCH = 19;
@@ -13,7 +12,6 @@ constexpr uint8_t SECOND_PATCH = 24;
 
 AmyM5MonophonicSynth amySynth;
 BleMidiInput bleMidiInput;
-uint32_t lastStatusLogAtMs = 0;
 
 class SerialBleDiagnostics : public BleMidiInputDiagnosticSink {
  public:
@@ -94,21 +92,6 @@ void drawStaticScreen() {
   M5.Display.println("BtnA: panic");
 }
 
-void logStatus() {
-  const uint32_t nowMs = millis();
-  if (nowMs - lastStatusLogAtMs < STATUS_LOG_INTERVAL_MS) {
-    return;
-  }
-  lastStatusLogAtMs = nowMs;
-  Serial.printf("status: uptime_ms=%lu note_active=%s selected_patch=%u patch1=%u patch2=%u pitch_bend=%d\n",
-                static_cast<unsigned long>(nowMs),
-                amySynth.noteActive() ? "true" : "false",
-                amySynth.patchNumber(),
-                amySynth.patchNumberForChannel(AmyM5MonophonicSynth::FIRST_MIDI_CHANNEL),
-                amySynth.patchNumberForChannel(AmyM5MonophonicSynth::SECOND_MIDI_CHANNEL),
-                amySynth.pitchBend());
-}
-
 void configureModWheelMappings() {
   const AmyMidiControlMapping channelOne{
       .midiChannel = AmyM5MonophonicSynth::FIRST_MIDI_CHANNEL,
@@ -163,6 +146,4 @@ void loop() {
     amySynth.panic();
     Serial.println("amy_midi: panic reason=button_a");
   }
-
-  logStatus();
 }
