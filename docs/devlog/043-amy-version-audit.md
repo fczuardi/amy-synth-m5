@@ -43,7 +43,11 @@ limitation, not an AMY compatibility failure. The AMY package must not regain a
 machine-local dependency to hide it; publishing the matching monophonic release
 is the next required distribution step.
 
-The `1.2.166` upgrade test remains pending because it requires fetching and
-building the newer upstream dependency in the local PlatformIO environment.
+The `1.2.166` candidate was fetched and tested locally. It installed and
+compiled successfully, and the manual browser without BLE linked successfully.
+The BLE monophonic and dual-channel applications both failed at link time with
+the same IRAM overflow: 124 bytes beyond the 131,072-byte IRAM region. The
+published package and application pins were restored to `1.2.108`; no package
+upgrade is claimed.
 
 Reference: <https://github.com/shorepine/amy/releases>.
