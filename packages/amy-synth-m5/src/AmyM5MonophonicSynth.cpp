@@ -213,6 +213,7 @@ void AmyM5MonophonicSynth::setPatch(uint8_t patchNumber) {
 }
 
 void AmyM5MonophonicSynth::panic() {
+  controlsRestorePending_ = false;
   instrumentSink_.panic();
 }
 
@@ -296,6 +297,7 @@ void AmyM5MonophonicSynth::sendControlChange(
 }
 
 void AmyM5MonophonicSynth::onDisconnected() {
+  controlsRestorePending_ = false;
   instrumentSink_.onDisconnected();
 }
 

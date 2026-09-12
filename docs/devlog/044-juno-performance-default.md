@@ -9,8 +9,8 @@ patch.
 ## Design
 
 `AmyM5MonophonicSynth::configureJunoPerformanceModulation()` is a convenience
-operation for the facade. It registers CC1 as a second AMY modulation input on
-the relative tonal oscillators 2, 3, and 4 for every configured MIDI channel.
+operation for the facade. It maps CC1 onto the existing AMY `mod0` route of the
+relative tonal oscillators 2, 3, and 4 for every configured MIDI channel.
 Those oscillators already use the relative oscillator 1 LFO through their
 existing `mod0` route in AMY's Juno patches, so the facade changes the
 coefficient on that established route. AMY allows one mapping per channel and
@@ -19,11 +19,12 @@ mapping template rather than registered as three competing mappings.
 
 An initial attempt used the new `mod1` input from AMY 1.2.159 and configured a
 second LFO source dynamically. The firmware built successfully, but the first
-hardware test produced no audible modulation. The profile therefore returns
-to the known-working `mod0` path for this release; preserving patch-authored
-modulation through `mod1` remains a separate AMY upgrade investigation. A
-second hardware test then exposed the one-mapping-per-controller rule; this
-slice fixes that by composing the three updates into one mapping.
+hardware test produced no audible modulation. The unproven `mod1` route was
+abandoned for this slice, returning the profile to the known-working `mod0`
+path. Preserving patch-authored modulation through `mod1` remains a separate
+AMY upgrade investigation. A second hardware test then exposed the
+one-mapping-per-controller rule; this slice fixes that by composing the three
+updates into one mapping.
 
 Fallback note transitions also restore the current global control values only
 after the monophonic sink has completed the new note action. This ordering is
