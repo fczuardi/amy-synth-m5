@@ -18,6 +18,7 @@ AmyM5MonophonicSynth::AmyM5MonophonicSynth()
         if (patch != synth->selectedPatch_) {
           synth->synthSlot_.setPatch(patch);
           synth->selectedPatch_ = patch;
+          synth->restoreControlValues(action.midiChannel);
         }
       },
       this);
@@ -73,7 +74,18 @@ bool AmyM5MonophonicSynth::configureMidiControlMapping(
     return false;
   }
 
-  return midi_store_mapping(
+  size_t mappingIndex = 0;
+  while (mappingIndex < controlValueCount_ &&
+         (controlValues_[mappingIndex].midiChannel != mapping.midiChannel ||
+          controlValues_[mappingIndex].controller != mapping.controller)) {
+    ++mappingIndex;
+  }
+  if (mappingIndex == controlValueCount_ &&
+      controlValueCount_ == MAX_MIDI_CONTROL_MAPPINGS) {
+    return false;
+  }
+
+  const bool stored = midi_store_mapping(
              static_cast<int>(mapping.midiChannel) + 1,
              MIDI_MAP_TYPE_CC,
              mapping.controller,
@@ -83,6 +95,14 @@ bool AmyM5MonophonicSynth::configureMidiControlMapping(
              0.0f,
              message,
              length) != 0;
+  if (stored) {
+    if (mappingIndex == controlValueCount_) {
+      controlValues_[mappingIndex].midiChannel = mapping.midiChannel;
+      controlValues_[mappingIndex].controller = mapping.controller;
+      ++controlValueCount_;
+    }
+  }
+  return stored;
 }
 
 void AmyM5MonophonicSynth::setPatch(uint8_t patchNumber) {
@@ -115,13 +135,49 @@ void AmyM5MonophonicSynth::onPitchBendEvent(const PitchBendEvent& event) {
 
 void AmyM5MonophonicSynth::onControlChangeEvent(
     const ControlChangeEvent& event) {
-  if (!supportsMidiChannel(event.channel) ||
-      (secondPatchEnabled_ &&
-       (!instrumentSink_.noteActive() ||
-        event.channel != instrumentSink_.activeMidiChannel()))) {
+  if (!supportsMidiChannel(event.channel)) {
     return;
   }
 
+  rememberControlValue(event);
+
+  if (secondPatchEnabled_ &&
+      (!instrumentSink_.noteActive() ||
+       event.channel != instrumentSink_.activeMidiChannel())) {
+    return;
+  }
+
+  sendControlChange(event);
+}
+
+void AmyM5MonophonicSynth::rememberControlValue(
+    const ControlChangeEvent& event) {
+  for (size_t i = 0; i < controlValueCount_; ++i) {
+    StoredControlValue& stored = controlValues_[i];
+    if (stored.midiChannel == event.channel &&
+        stored.controller == event.controller) {
+      stored.value = event.value;
+      stored.hasValue = true;
+      return;
+    }
+  }
+}
+
+void AmyM5MonophonicSynth::restoreControlValues(uint8_t midiChannel) {
+  for (size_t i = 0; i < controlValueCount_; ++i) {
+    const StoredControlValue& stored = controlValues_[i];
+    if (stored.midiChannel == midiChannel && stored.hasValue) {
+      sendControlChange({
+          midiChannel,
+          stored.controller,
+          stored.value,
+      });
+    }
+  }
+}
+
+void AmyM5MonophonicSynth::sendControlChange(
+    const ControlChangeEvent& event) {
   uint8_t rawMessage[3] = {
       static_cast<uint8_t>(0xB0 | event.channel),
       event.controller,

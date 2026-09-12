@@ -56,6 +56,19 @@ class AmyM5MonophonicSynth : public InstrumentEventSink {
   int16_t pitchBend() const;
 
  private:
+  static constexpr size_t MAX_MIDI_CONTROL_MAPPINGS = 8;
+
+  struct StoredControlValue {
+    uint8_t midiChannel = 0;
+    uint8_t controller = 0;
+    uint8_t value = 0;
+    bool hasValue = false;
+  };
+
+  void rememberControlValue(const ControlChangeEvent& event);
+  void restoreControlValues(uint8_t midiChannel);
+  void sendControlChange(const ControlChangeEvent& event);
+
   AmyM5SpeakerBridge speakerBridge_;
   AmyAudioActivityGate audioGate_;
   AmyRuntime runtime_;
@@ -66,4 +79,6 @@ class AmyM5MonophonicSynth : public InstrumentEventSink {
   uint8_t selectedPatch_ = 0;
   bool secondPatchEnabled_ = false;
   bool begun_ = false;
+  StoredControlValue controlValues_[MAX_MIDI_CONTROL_MAPPINGS] = {};
+  size_t controlValueCount_ = 0;
 };

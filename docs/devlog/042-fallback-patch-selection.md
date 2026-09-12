@@ -12,6 +12,11 @@ each `MonophonicNoteAction`. `AmyMonophonicInstrumentSink` exposes the start
 action before applying it. `AmyM5MonophonicSynth` uses that action to select the
 channel's configured patch before the sink starts the note.
 
+The facade also remembers the latest value for each configured MIDI mapping.
+When a patch is reloaded during a cross-channel fallback, those values are
+replayed after the patch load. This keeps modulation state per channel without
+adding state to the generic MIDI or monophonic contracts.
+
 This keeps responsibilities explicit: the policy chooses the note identity,
 the AMY facade maps that identity to a patch, and the sink translates the
 already-selected action into slot commands. Frequency-oriented consumers can
