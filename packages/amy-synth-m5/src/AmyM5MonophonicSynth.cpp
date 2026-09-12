@@ -5,24 +5,19 @@
 #include "AmyMidiControlMappingFormatter.h"
 
 namespace {
-struct JunoPerformanceProfile {
-  uint8_t patch;
-  uint8_t targetOscillator;
-};
+constexpr uint8_t JUNO_LFO_OSCILLATOR = 1;
+constexpr uint8_t JUNO_TONAL_OSCILLATORS[] = {2, 3, 4};
 
-constexpr JunoPerformanceProfile JUNO_PERFORMANCE_PROFILES[] = {
-    {19, 3},
-    {24, 2},
-};
+static_assert(JUNO_LFO_OSCILLATOR == 1);
 
-const JunoPerformanceProfile* findJunoPerformanceProfile(uint8_t patch) {
-  for (const JunoPerformanceProfile& profile : JUNO_PERFORMANCE_PROFILES) {
-    if (profile.patch == patch) {
-      return &profile;
-    }
-  }
-  return nullptr;
+const uint8_t* junoTonalOscillators() {
+  return JUNO_TONAL_OSCILLATORS;
 }
+
+size_t junoTonalOscillatorCount() {
+  return sizeof(JUNO_TONAL_OSCILLATORS) /
+         sizeof(JUNO_TONAL_OSCILLATORS[0]);
+};
 }  // namespace
 
 AmyM5MonophonicSynth::AmyM5MonophonicSynth()
@@ -130,30 +125,28 @@ bool AmyM5MonophonicSynth::configureJunoPerformanceModulation(
     return false;
   }
 
-  bool configured = false;
-  const uint8_t patches[] = {firstPatch_, secondPatch_};
+  bool configured = true;
   const uint8_t channels[] = {
       FIRST_MIDI_CHANNEL,
       SECOND_MIDI_CHANNEL,
   };
-  const size_t patchCount = secondPatchEnabled_ ? 2 : 1;
+  const size_t channelCount = secondPatchEnabled_ ? 2 : 1;
 
-  for (size_t i = 0; i < patchCount; ++i) {
-    const JunoPerformanceProfile* profile =
-        findJunoPerformanceProfile(patches[i]);
-    if (profile == nullptr) {
-      continue;
+  for (size_t channelIndex = 0; channelIndex < channelCount; ++channelIndex) {
+    for (size_t oscillatorIndex = 0;
+         oscillatorIndex < junoTonalOscillatorCount();
+         ++oscillatorIndex) {
+      const AmyMidiControlMapping mapping{
+          .midiChannel = channels[channelIndex],
+          .controller = controller,
+          .targetOscillator = junoTonalOscillators()[oscillatorIndex],
+          .source = AmyModulationSource::Mod1,
+          .target = AmyModulationTarget::Frequency,
+          .coefficientAtMinimum = 0.0f,
+          .coefficientAtMaximum = 0.1f,
+      };
+      configured = configureMidiControlMapping(mapping) && configured;
     }
-
-    const AmyMidiControlMapping mapping{
-        .midiChannel = channels[i],
-        .controller = controller,
-        .targetOscillator = profile->targetOscillator,
-        .target = AmyModulationTarget::Frequency,
-        .coefficientAtMinimum = 0.0f,
-        .coefficientAtMaximum = 0.1f,
-    };
-    configured = configureMidiControlMapping(mapping) || configured;
   }
 
   return configured;

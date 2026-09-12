@@ -67,10 +67,11 @@ facade. It remains globally monophonic at the performance policy level, while
 allowing one controller to select different AMY patches by MIDI channel.
 
 `configureJunoPerformanceModulation()` is an optional convenience default. It
-uses the package's known AMY patch profiles for CC1, so applications do not
-need to know the target oscillator for patches 19 and 24. Unknown patches are
-left without an automatic mapping. `configureMidiControlMapping()` remains
-available for patch profiles discovered by an application.
+uses AMY's fixed Juno oscillator layout for CC1: the patch LFO on relative
+oscillator 1 modulates the frequency of tonal oscillators 2, 3, and 4 through
+`mod1`. This applies to Juno patches without requiring the application to know
+their individual target oscillator. `configureMidiControlMapping()` remains
+available for patches or targets outside that layout.
 
 ## Current Boundaries
 

@@ -71,6 +71,23 @@ void test_mapping_formatter_encodes_all_targets() {
   }
 }
 
+void test_mapping_formatter_targets_mod1_coefficient() {
+  AmyMidiControlMapping mapping{
+      .midiChannel = 1,
+      .controller = 1,
+      .targetOscillator = 2,
+      .source = AmyModulationSource::Mod1,
+      .target = AmyModulationTarget::Frequency,
+  };
+  char message[64] = {};
+  size_t length = 0;
+
+  TEST_ASSERT_TRUE(formatAmyMidiControlMessage(
+      1, mapping, message, sizeof(message), length));
+  TEST_ASSERT_EQUAL_STRING("i1v2f,,,,,,,,,%vZ", message);
+  TEST_ASSERT_EQUAL_UINT(std::strlen("i1v2f,,,,,,,,,%vZ"), length);
+}
+
 void test_mapping_formatter_rejects_invalid_channel() {
   AmyMidiControlMapping mapping{.midiChannel = 16, .controller = 1};
   char message[64] = {};
@@ -106,6 +123,7 @@ int main(int, char**) {
   RUN_TEST(test_to_octaves_matches_amy_midi_mapping);
   RUN_TEST(test_to_octaves_clamps_before_mapping);
   RUN_TEST(test_mapping_formatter_encodes_all_targets);
+  RUN_TEST(test_mapping_formatter_targets_mod1_coefficient);
   RUN_TEST(test_mapping_formatter_rejects_invalid_channel);
   RUN_TEST(test_mapping_formatter_rejects_invalid_controller);
   RUN_TEST(test_mapping_formatter_rejects_small_buffer);

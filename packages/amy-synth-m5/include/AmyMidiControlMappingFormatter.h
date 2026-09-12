@@ -30,11 +30,14 @@ inline bool formatAmyMidiControlMessage(
   const char parameter = amyModulationTargetParameter(mapping.target);
   if (parameter == '\0') return false;
 
+  const char* sourceCoefficientPrefix =
+      mapping.source == AmyModulationSource::Mod1 ? ",,,,,,,,," : ",,,,,";
+
   const int length = std::snprintf(
-      buffer, bufferSize, "i%uv%u%c,,,,,%sZ",
+      buffer, bufferSize, "i%uv%u%c%s%sZ",
       static_cast<unsigned>(synthId),
       static_cast<unsigned>(mapping.targetOscillator),
-      parameter, "%v");
+      parameter, sourceCoefficientPrefix, "%v");
   if (length <= 0 || static_cast<size_t>(length) >= bufferSize) return false;
 
   messageLength = static_cast<size_t>(length);

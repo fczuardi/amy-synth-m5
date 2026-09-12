@@ -9,25 +9,26 @@ patch.
 ## Design
 
 `AmyM5MonophonicSynth::configureJunoPerformanceModulation()` is a convenience
-operation for the facade. It registers the package's known patch profiles for
-the configured MIDI channels, using CC1 and AMY frequency modulation with the
-validated coefficient range.
+operation for the facade. It registers CC1 as a second AMY modulation input on
+the relative tonal oscillators 2, 3, and 4 for every configured MIDI channel.
+The AMY Juno patch already connects its relative oscillator 1 LFO to those
+sources, so the control changes only the temporary performance coefficient in
+`mod1` and leaves the patch's stored `mod0` behavior intact.
 
-The first profiles are deliberately small and empirical:
+This follows the fixed Juno oscillator topology rather than a table of
+individually measured patches:
 
-| AMY patch | Relative target oscillator |
-| --- | ---: |
-| 19 | 3 |
-| 24 | 2 |
+| Relative oscillator | Role |
+| --- | --- |
+| 1 | LFO / modulation source |
+| 2 | pulse / PWM |
+| 3 | saw |
+| 4 | sub oscillator |
 
-An unknown patch is not guessed. Its channel receives no automatic mapping and
-the method reports failure if no known profile could be configured. The lower-
-level `configureMidiControlMapping()` remains available for new measurements
-or mappings that are not part of the package defaults.
-
-This table is an integration detail of the AMY version used by the package,
-not a claim that all Juno-derived patches share one universal oscillator
-topology.
+The lower-level `configureMidiControlMapping()` remains available for patches
+or targets that do not follow this Juno layout. The profile is intentionally
+specific to AMY's Juno patch family, not a universal policy for all AMY
+patches.
 
 ## Verification
 
