@@ -181,7 +181,7 @@ void AmyM5MonophonicSynth::sendControlChange(
       event.controller,
       event.value,
   };
-  midi_msg_handler(rawMessage, sizeof(rawMessage), 0, 0);
+  midi_msg_handler(rawMessage, sizeof(rawMessage), 0, amy_sysclock());
 }
 
 void AmyM5MonophonicSynth::onDisconnected() {
