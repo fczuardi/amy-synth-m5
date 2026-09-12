@@ -59,7 +59,6 @@ class AmyM5MonophonicSynth : public InstrumentEventSink {
   static constexpr size_t MAX_MIDI_CONTROL_MAPPINGS = 8;
 
   struct StoredControlValue {
-    uint8_t midiChannel = 0;
     uint8_t controller = 0;
     uint8_t value = 0;
     bool hasValue = false;

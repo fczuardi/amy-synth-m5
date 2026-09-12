@@ -76,8 +76,7 @@ bool AmyM5MonophonicSynth::configureMidiControlMapping(
 
   size_t mappingIndex = 0;
   while (mappingIndex < controlValueCount_ &&
-         (controlValues_[mappingIndex].midiChannel != mapping.midiChannel ||
-          controlValues_[mappingIndex].controller != mapping.controller)) {
+         controlValues_[mappingIndex].controller != mapping.controller) {
     ++mappingIndex;
   }
   if (mappingIndex == controlValueCount_ &&
@@ -97,7 +96,6 @@ bool AmyM5MonophonicSynth::configureMidiControlMapping(
              length) != 0;
   if (stored) {
     if (mappingIndex == controlValueCount_) {
-      controlValues_[mappingIndex].midiChannel = mapping.midiChannel;
       controlValues_[mappingIndex].controller = mapping.controller;
       ++controlValueCount_;
     }
@@ -141,21 +139,21 @@ void AmyM5MonophonicSynth::onControlChangeEvent(
 
   rememberControlValue(event);
 
-  if (secondPatchEnabled_ &&
-      (!instrumentSink_.noteActive() ||
-       event.channel != instrumentSink_.activeMidiChannel())) {
+  if (!instrumentSink_.noteActive()) {
     return;
   }
 
-  sendControlChange(event);
+  const uint8_t targetChannel = secondPatchEnabled_
+      ? instrumentSink_.activeMidiChannel()
+      : event.channel;
+  sendControlChange({targetChannel, event.controller, event.value});
 }
 
 void AmyM5MonophonicSynth::rememberControlValue(
     const ControlChangeEvent& event) {
   for (size_t i = 0; i < controlValueCount_; ++i) {
     StoredControlValue& stored = controlValues_[i];
-    if (stored.midiChannel == event.channel &&
-        stored.controller == event.controller) {
+    if (stored.controller == event.controller) {
       stored.value = event.value;
       stored.hasValue = true;
       return;
@@ -166,7 +164,7 @@ void AmyM5MonophonicSynth::rememberControlValue(
 void AmyM5MonophonicSynth::restoreControlValues(uint8_t midiChannel) {
   for (size_t i = 0; i < controlValueCount_; ++i) {
     const StoredControlValue& stored = controlValues_[i];
-    if (stored.midiChannel == midiChannel && stored.hasValue) {
+    if (stored.hasValue) {
       sendControlChange({
           midiChannel,
           stored.controller,

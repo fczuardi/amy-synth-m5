@@ -12,11 +12,11 @@ each `MonophonicNoteAction`. `AmyMonophonicInstrumentSink` exposes the start
 action before applying it. `AmyM5MonophonicSynth` uses that action to select the
 channel's configured patch before the sink starts the note.
 
-The facade also remembers the latest value for each configured MIDI mapping.
-Whenever a note starts, including after a patch reload or a return to an
-already-selected patch, those values are replayed for the note's channel. This
-keeps modulation state per channel without adding state to the generic MIDI or
-monophonic contracts.
+The facade treats configured control values as global performance state. It
+remembers one latest value per mapped controller and applies that value to the
+currently active channel's patch whenever a note starts, including after a
+patch reload. This matches the single physical modulation strip without adding
+state to the generic MIDI or monophonic contracts.
 
 This keeps responsibilities explicit: the policy chooses the note identity,
 the AMY facade maps that identity to a patch, and the sink translates the
