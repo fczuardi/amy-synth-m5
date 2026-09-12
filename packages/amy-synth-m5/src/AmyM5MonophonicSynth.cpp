@@ -2,8 +2,6 @@
 
 #include <AMY-Arduino.h>
 
-#include <cstdio>
-
 AmyM5MonophonicSynth::AmyM5MonophonicSynth()
     : audioGate_(speakerBridge_),
       instrumentSink_(runtime_, synthSlot_, audioGate_) {
@@ -48,35 +46,14 @@ bool AmyM5MonophonicSynth::configureMidiControlMapping(
     return false;
   }
 
-  const char parameter = [&]() {
-    switch (mapping.target) {
-      case AmyModulationTarget::Frequency:
-        return 'f';
-      case AmyModulationTarget::Amplitude:
-        return 'a';
-      case AmyModulationTarget::FilterFrequency:
-        return 'F';
-      case AmyModulationTarget::Duty:
-        return 'd';
-      case AmyModulationTarget::Pan:
-        return 'Q';
-    }
-    return '\0';
-  }();
-  if (parameter == '\0' || !begun_) {
+  if (!begun_) {
     return false;
   }
 
   char message[64];
-  const int length = std::snprintf(
-      message,
-      sizeof(message),
-      "i%uv%u%c,,,,,%sZ",
-      static_cast<unsigned>(synthSlot_.synthId()),
-      static_cast<unsigned>(mapping.targetOscillator),
-      parameter,
-      "%v");
-  if (length <= 0 || static_cast<size_t>(length) >= sizeof(message)) {
+  size_t length = 0;
+  if (!formatAmyMidiControlMessage(
+          synthSlot_.synthId(), mapping, message, sizeof(message), length)) {
     return false;
   }
 
@@ -89,7 +66,7 @@ bool AmyM5MonophonicSynth::configureMidiControlMapping(
              mapping.coefficientAtMaximum,
              0.0f,
              message,
-             static_cast<size_t>(length)) != 0;
+             length) != 0;
 }
 
 void AmyM5MonophonicSynth::setPatch(uint8_t patchNumber) {
@@ -123,6 +100,11 @@ void AmyM5MonophonicSynth::onPitchBendEvent(const PitchBendEvent& event) {
 
 void AmyM5MonophonicSynth::onControlChangeEvent(
     const ControlChangeEvent& event) {
+  const uint8_t expectedPatch = patchNumberForChannel(event.channel);
+  if (expectedPatch == 0 || expectedPatch != selectedPatch_) {
+    return;
+  }
+
   uint8_t rawMessage[3] = {
       static_cast<uint8_t>(0xB0 | event.channel),
       event.controller,

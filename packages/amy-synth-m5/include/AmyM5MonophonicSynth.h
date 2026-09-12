@@ -6,6 +6,7 @@
 #include "AmyMonophonicInstrumentSink.h"
 #include "AmyM5SpeakerBridge.h"
 #include "AmyMidiControlMapping.h"
+#include "AmyMidiControlMappingFormatter.h"
 #include "AmyRuntime.h"
 #include "AmySynthSlot.h"
 #include "InstrumentEventSink.h"
