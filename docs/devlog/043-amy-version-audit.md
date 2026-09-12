@@ -8,8 +8,10 @@ released version before adding more facade behavior.
 ## Finding
 
 The package and all three AMY applications are pinned to AMY `1.2.108`. The
-upstream GitHub release list still identifies `1.2.108` as the latest release,
-so there is no newer released version to adopt in this slice.
+upstream release page currently shows AMY `1.2.166` as the latest release, so
+there is a real newer version to evaluate. An earlier web lookup returned stale
+release data and incorrectly concluded that `1.2.108` was current; this chapter
+corrects that conclusion.
 
 The upstream `main` branch is not treated as an upgrade target. Consuming it
 would combine unreviewed API and resource changes with a firmware path whose
@@ -18,15 +20,14 @@ behavior are already validated.
 
 ## Decision
 
-Keep AMY pinned to `1.2.108`. Do not change the published package manifest or
-the applications' dependency pins. A future upgrade spike should begin only
-when a newer AMY release exists, and should compare compilation, package
-consumption, IRAM, DRAM, Flash, audio behavior, and the existing hardware
-checks before updating the dependency.
+Keep the published package pinned to `1.2.108` until `1.2.166` completes an
+isolated upgrade check. The candidate must be compared for compilation,
+package consumption, IRAM, DRAM, Flash, audio behavior, and the existing
+hardware checks before any dependency update.
 
 ## Verification
 
-The following checks passed with AMY `1.2.108`:
+The following checks passed with the existing AMY `1.2.108` dependency:
 
 - native AMY package tests: 9 cases;
 - package packing: `amy-synth-m5-0.2.6.tar.gz`;
@@ -41,5 +42,8 @@ not yet available in the PlatformIO Registry. This is a distribution bootstrap
 limitation, not an AMY compatibility failure. The AMY package must not regain a
 machine-local dependency to hide it; publishing the matching monophonic release
 is the next required distribution step.
+
+The `1.2.166` upgrade test remains pending because it requires fetching and
+building the newer upstream dependency in the local PlatformIO environment.
 
 Reference: <https://github.com/shorepine/amy/releases>.
