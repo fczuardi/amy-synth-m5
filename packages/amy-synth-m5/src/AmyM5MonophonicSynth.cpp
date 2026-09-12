@@ -7,6 +7,20 @@
 AmyM5MonophonicSynth::AmyM5MonophonicSynth()
     : audioGate_(speakerBridge_),
       instrumentSink_(runtime_, synthSlot_, audioGate_) {
+  instrumentSink_.setNoteActionObserver(
+      [](void* context, const MonophonicNoteAction& action) {
+        auto* synth = static_cast<AmyM5MonophonicSynth*>(context);
+        if (!synth->supportsMidiChannel(action.midiChannel)) {
+          return;
+        }
+        const uint8_t patch =
+            synth->patchNumberForChannel(action.midiChannel);
+        if (patch != synth->selectedPatch_) {
+          synth->synthSlot_.setPatch(patch);
+          synth->selectedPatch_ = patch;
+        }
+      },
+      this);
 }
 
 void AmyM5MonophonicSynth::begin(
@@ -85,14 +99,6 @@ void AmyM5MonophonicSynth::panic() {
 void AmyM5MonophonicSynth::onNoteEvent(const NoteEvent& event) {
   if (!supportsMidiChannel(event.channel)) {
     return;
-  }
-
-  if (event.type == NoteEventType::NoteOn) {
-    const uint8_t patch = patchNumberForChannel(event.channel);
-    if (patch != selectedPatch_) {
-      synthSlot_.setPatch(patch);
-      selectedPatch_ = patch;
-    }
   }
 
   instrumentSink_.onNoteEvent(event);

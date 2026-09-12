@@ -18,7 +18,19 @@ void AmyMonophonicInstrumentSink::onNoteEvent(const NoteEvent& event) {
     synthSlot_.noteOff(previousNote);
   }
 
+  if (noteActionObserver_ != nullptr &&
+      action.type == MonophonicNoteActionType::StartNote) {
+    noteActionObserver_(noteActionObserverContext_, action);
+  }
+
   applyNoteAction(action);
+}
+
+void AmyMonophonicInstrumentSink::setNoteActionObserver(
+    NoteActionObserver observer,
+    void* context) {
+  noteActionObserver_ = observer;
+  noteActionObserverContext_ = context;
 }
 
 void AmyMonophonicInstrumentSink::onPitchBendEvent(const PitchBendEvent& event) {

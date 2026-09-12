@@ -15,6 +15,10 @@
 // patch selection plus raw AMY event translation to the lower-level objects.
 class AmyMonophonicInstrumentSink : public InstrumentEventSink {
  public:
+  using NoteActionObserver = void (*)(
+      void* context,
+      const MonophonicNoteAction& action);
+
   AmyMonophonicInstrumentSink(
       AmyRuntime& runtime,
       AmySynthSlot& synthSlot,
@@ -23,6 +27,8 @@ class AmyMonophonicInstrumentSink : public InstrumentEventSink {
   void onNoteEvent(const NoteEvent& event) override;
   void onPitchBendEvent(const PitchBendEvent& event) override;
   void onDisconnected() override;
+
+  void setNoteActionObserver(NoteActionObserver observer, void* context);
 
   void panic();
 
@@ -39,6 +45,8 @@ class AmyMonophonicInstrumentSink : public InstrumentEventSink {
   AmySynthSlot& synthSlot_;
   AmyAudioActivityGate& audioGate_;
   MonophonicNotePriority notePriority_;
+  NoteActionObserver noteActionObserver_ = nullptr;
+  void* noteActionObserverContext_ = nullptr;
 
   int16_t pitchBend_ = 0;
 };
