@@ -21,8 +21,8 @@ behavior are already validated.
 ## Decision
 
 Adopt AMY `1.2.159` as the newest tested release that fits the Core Gray BLE
-firmware's IRAM budget. The `amy-synth-m5` package advances to `0.2.7` with
-this dependency.
+firmware's IRAM budget. The `amy-synth-m5` package advances to `0.2.8` with
+this dependency and with `monophonic-instrument@0.1.5`.
 
 ## Verification
 
@@ -36,11 +36,13 @@ The following checks passed with the existing AMY `1.2.108` dependency:
 
 The isolated consumer initially reused a stale cached package. After clearing
 its generated state, it correctly installed local `amy-synth-m5@0.2.6`, then
-failed because the transitive `fcz2/monophonic-instrument@0.1.4` dependency is
-not yet available in the PlatformIO Registry. This is a distribution bootstrap
-limitation, not an AMY compatibility failure. The AMY package must not regain a
-machine-local dependency to hide it; publishing the matching monophonic release
-is the next required distribution step.
+failed because the transitive `fcz2/monophonic-instrument@0.1.4` dependency was
+not yet available in the PlatformIO Registry. After that release was
+published, a second run exposed that `0.1.4` still pinned the older
+`firmware-contracts` package, allowing PlatformIO to select headers without
+`ControlChangeEvent`. The monophonic package was corrected and published as
+`0.1.5`; AMY `0.2.8` now points to that corrected release. This preserves
+remote, reproducible consumption without a machine-local dependency.
 
 The `1.2.166`, `1.2.165`, `1.2.162`, and `1.2.160` candidates were fetched and
 tested locally. They installed and compiled, but both BLE applications failed
