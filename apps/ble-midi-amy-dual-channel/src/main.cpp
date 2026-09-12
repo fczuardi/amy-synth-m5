@@ -1,5 +1,8 @@
 #include <Arduino.h>
 #include <M5Unified.h>
+#include <AMY-Arduino.h>
+
+#include <cstring>
 
 #include "AmyM5MonophonicSynth.h"
 #include "BleMidiInput.h"
@@ -14,6 +17,44 @@ constexpr uint8_t SECOND_PATCH = 24;
 AmyM5MonophonicSynth amySynth;
 BleMidiInput bleMidiInput;
 uint32_t lastStatusLogAtMs = 0;
+
+class AmyModWheelMappingSink : public InstrumentEventSink {
+ public:
+  explicit AmyModWheelMappingSink(AmyM5MonophonicSynth& synth)
+      : synth_(synth) {
+  }
+
+  void onNoteEvent(const NoteEvent& event) override {
+    synth_.onNoteEvent(event);
+  }
+
+  void onPitchBendEvent(const PitchBendEvent& event) override {
+    synth_.onPitchBendEvent(event);
+  }
+
+  void onControlChangeEvent(const ControlChangeEvent& event) override {
+    if (event.channel != AmyM5MonophonicSynth::FIRST_MIDI_CHANNEL ||
+        event.controller != 1) {
+      return;
+    }
+
+    uint8_t rawMessage[3] = {
+        static_cast<uint8_t>(0xB0 | event.channel),
+        event.controller,
+        event.value,
+    };
+    midi_msg_handler(rawMessage, sizeof(rawMessage), 0, 0);
+  }
+
+  void onDisconnected() override {
+    synth_.onDisconnected();
+  }
+
+ private:
+  AmyM5MonophonicSynth& synth_;
+};
+
+AmyModWheelMappingSink amyModWheelMappingSink(amySynth);
 
 class SerialBleDiagnostics : public BleMidiInputDiagnosticSink {
  public:
@@ -108,6 +149,16 @@ void logStatus() {
                 amySynth.patchNumberForChannel(AmyM5MonophonicSynth::SECOND_MIDI_CHANNEL),
                 amySynth.pitchBend());
 }
+
+void configureChannelOneModWheelMapping() {
+  // AMY MIDI channels are one-based. v2 is the first Juno sounding oscillator
+  // relative to each voice, while the empty fields preserve other coefficients.
+  constexpr char MAPPING[] = "v2f,,,,,%vZ";
+  const int configured = midi_store_mapping(
+      1, MIDI_MAP_TYPE_CC, 1, 0, 0.0f, 0.1f, 0.0f, MAPPING,
+      std::strlen(MAPPING));
+  Serial.printf("amy: mod_wheel_mapping channel=1 cc=1 status=%d\n", configured);
+}
 }  // namespace
 
 void setup() {
@@ -126,7 +177,8 @@ void setup() {
                 MONO_VOICES);
 
   amySynth.begin(FIRST_SYNTH_ID, MONO_VOICES, FIRST_PATCH, SECOND_PATCH);
-  bleMidiInput.setInstrumentEventSink(&amySynth);
+  configureChannelOneModWheelMapping();
+  bleMidiInput.setInstrumentEventSink(&amyModWheelMappingSink);
   bleMidiInput.setDiagnosticSink(&bleDiagnostics);
   bleMidiInput.begin();
 }
