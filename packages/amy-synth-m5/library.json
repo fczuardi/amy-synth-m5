@@ -14,7 +14,6 @@
     "AmyRuntime.h",
     "AmyPitchBend.h",
     "AmyMidiControlMapping.h",
-    "AmyMidiControlMappingFormatter.h",
     "AmySynthSlot.h",
     "AmyMonophonicInstrumentSink.h",
     "AmyM5SpeakerBridge.h",

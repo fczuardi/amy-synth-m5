@@ -6,7 +6,6 @@
 #include "AmyMonophonicInstrumentSink.h"
 #include "AmyM5SpeakerBridge.h"
 #include "AmyMidiControlMapping.h"
-#include "AmyMidiControlMappingFormatter.h"
 #include "AmyRuntime.h"
 #include "AmySynthSlot.h"
 #include "InstrumentEventSink.h"
@@ -52,6 +51,7 @@ class AmyM5MonophonicSynth : public InstrumentEventSink {
 
   bool noteActive() const;
   uint8_t patchNumber() const;
+  bool supportsMidiChannel(uint8_t midiChannel) const;
   uint8_t patchNumberForChannel(uint8_t midiChannel) const;
   int16_t pitchBend() const;
 

@@ -2,6 +2,8 @@
 
 #include <AMY-Arduino.h>
 
+#include "AmyMidiControlMappingFormatter.h"
+
 AmyM5MonophonicSynth::AmyM5MonophonicSynth()
     : audioGate_(speakerBridge_),
       instrumentSink_(runtime_, synthSlot_, audioGate_) {
@@ -82,10 +84,10 @@ void AmyM5MonophonicSynth::panic() {
 
 void AmyM5MonophonicSynth::onNoteEvent(const NoteEvent& event) {
   if (event.type == NoteEventType::NoteOn) {
-    const uint8_t patch = patchNumberForChannel(event.channel);
-    if (patch == 0) {
+    if (!supportsMidiChannel(event.channel)) {
       return;
     }
+    const uint8_t patch = patchNumberForChannel(event.channel);
     if (patch != selectedPatch_) {
       synthSlot_.setPatch(patch);
       selectedPatch_ = patch;
@@ -100,8 +102,8 @@ void AmyM5MonophonicSynth::onPitchBendEvent(const PitchBendEvent& event) {
 
 void AmyM5MonophonicSynth::onControlChangeEvent(
     const ControlChangeEvent& event) {
-  const uint8_t expectedPatch = patchNumberForChannel(event.channel);
-  if (expectedPatch == 0 || expectedPatch != selectedPatch_) {
+  if (!supportsMidiChannel(event.channel) ||
+      patchNumberForChannel(event.channel) != selectedPatch_) {
     return;
   }
 
@@ -123,6 +125,11 @@ bool AmyM5MonophonicSynth::noteActive() const {
 
 uint8_t AmyM5MonophonicSynth::patchNumber() const {
   return selectedPatch_;
+}
+
+bool AmyM5MonophonicSynth::supportsMidiChannel(uint8_t midiChannel) const {
+  return !secondPatchEnabled_ || midiChannel == FIRST_MIDI_CHANNEL ||
+         midiChannel == SECOND_MIDI_CHANNEL;
 }
 
 uint8_t AmyM5MonophonicSynth::patchNumberForChannel(

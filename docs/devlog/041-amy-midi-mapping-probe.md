@@ -29,6 +29,9 @@ no effective amplitude.
 The facade translates the typed control-change event into a complete MIDI CC
 message for AMY's native mapping engine. It forwards the event only when its
 channel corresponds to the patch currently selected in the shared synth slot.
+Channel support is reported separately from the patch number, so AMY patch 0
+remains a valid selectable patch rather than serving as an unsupported-channel
+sentinel.
 The application still supplies the patch-specific oscillator choices, but it
 no longer constructs AMY wire messages or depends on AMY's mapping functions
 directly.
