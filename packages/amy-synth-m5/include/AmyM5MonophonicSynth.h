@@ -5,6 +5,7 @@
 #include "AmyAudioActivityGate.h"
 #include "AmyMonophonicInstrumentSink.h"
 #include "AmyM5SpeakerBridge.h"
+#include "AmyMidiControlMapping.h"
 #include "AmyRuntime.h"
 #include "AmySynthSlot.h"
 #include "InstrumentEventSink.h"
@@ -31,15 +32,21 @@ class AmyM5MonophonicSynth : public InstrumentEventSink {
   void begin(
       uint8_t firstSynthId,
       uint8_t voiceCount,
-      uint8_t firstPatch,
-      uint8_t secondPatch);
+    uint8_t firstPatch,
+    uint8_t secondPatch);
   void update();
+
+  // Registers a MIDI CC mapping using AMY's native mapping mechanism. The
+  // MIDI channel is zero-based, like ControlChangeEvent; patch-specific
+  // oscillator choices remain with the application configuration.
+  bool configureMidiControlMapping(const AmyMidiControlMapping& mapping);
 
   void setPatch(uint8_t patchNumber);
   void panic();
 
   void onNoteEvent(const NoteEvent& event) override;
   void onPitchBendEvent(const PitchBendEvent& event) override;
+  void onControlChangeEvent(const ControlChangeEvent& event) override;
   void onDisconnected() override;
 
   bool noteActive() const;
@@ -57,4 +64,5 @@ class AmyM5MonophonicSynth : public InstrumentEventSink {
   uint8_t secondPatch_ = 0;
   uint8_t selectedPatch_ = 0;
   bool secondPatchEnabled_ = false;
+  bool begun_ = false;
 };

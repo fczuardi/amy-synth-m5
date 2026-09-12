@@ -13,6 +13,7 @@
   "headers": [
     "AmyRuntime.h",
     "AmyPitchBend.h",
+    "AmyMidiControlMapping.h",
     "AmySynthSlot.h",
     "AmyMonophonicInstrumentSink.h",
     "AmyM5SpeakerBridge.h",

@@ -12,20 +12,23 @@ Control Change events reach the app. It registers one AMY mapping at startup:
 
 ```text
 AMY MIDI channel 1, CC1 -> i%iv3f,,,,,%vZ
+AMY MIDI channel 2, CC1 -> i%iv2f,,,,,%vZ
 ```
 
-The mapping targets oscillator 3 relative to synth 1, which is an audible
-oscillator in Juno patch 19, and changes only its `freq` `mod` coefficient.
+The mappings target the audible oscillator in each patch relative to synth 1
+and change only its `freq` `mod` coefficient. Patch 19 uses oscillator 3,
+while patch 24 uses oscillator 2.
 The `i%iv3` prefix is important: without it, `v3` addresses a global AMY
 oscillator rather than oscillator 3 within the allocated synth voice. Empty
 coefficient fields preserve the other frequency controls. The value range is
-0.0 to 0.1 octaves. Channel 2 and other controllers are deliberately not
-mapped. The first attempt targeted oscillator 2, but patch 19 gives that
-oscillator no effective amplitude.
+0.0 to 0.1 octaves. Other controllers are deliberately not mapped. The first
+attempt used oscillator 2 for both patches, but patch 19 gives that oscillator
+no effective amplitude.
 
-The app forwards the typed event back into AMY's mapping engine as a complete
-MIDI CC message. This is intentionally app-local probe code, not package
-behavior or a new universal synth interface.
+The facade translates the typed control-change event into a complete MIDI CC
+message for AMY's native mapping engine. The application still supplies the
+patch-specific oscillator choices, but it no longer constructs AMY wire
+messages or depends on AMY's mapping functions directly.
 
 ## Verification
 
@@ -36,5 +39,6 @@ strip moved. The effect was consistent with the AMY patch's LFO being applied
 with a depth controlled by CC1. This validates the AMY-native mapping path for
 this patch and setup.
 
-The mapping remains app-local. No modulation policy was added to the package
-facade, and channel 2 was not mapped in this probe.
+The mapping data remains application configuration because oscillator roles are
+patch-specific. The package facade owns the translation and registration
+mechanism, without imposing a universal modulation policy on every patch.
