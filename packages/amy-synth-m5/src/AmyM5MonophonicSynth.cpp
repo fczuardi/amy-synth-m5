@@ -1,14 +1,13 @@
 #include "AmyM5MonophonicSynth.h"
 
+#include <cstring>
+
 #include <AMY-Arduino.h>
 
 #include "AmyMidiControlMappingFormatter.h"
 
 namespace {
-constexpr uint8_t JUNO_LFO_OSCILLATOR = 1;
 constexpr uint8_t JUNO_TONAL_OSCILLATORS[] = {2, 3, 4};
-
-static_assert(JUNO_LFO_OSCILLATOR == 1);
 
 const uint8_t* junoTonalOscillators() {
   return JUNO_TONAL_OSCILLATORS;
@@ -35,7 +34,6 @@ AmyM5MonophonicSynth::AmyM5MonophonicSynth()
           synth->synthSlot_.setPatch(patch);
           synth->selectedPatch_ = patch;
         }
-        synth->restoreControlValues(action.midiChannel);
       },
       this);
 }
@@ -70,7 +68,14 @@ void AmyM5MonophonicSynth::begin(
 }
 
 void AmyM5MonophonicSynth::update() {
+  const uint32_t renderedBlocksBefore = speakerBridge_.renderedBlockCount();
   audioGate_.update(instrumentSink_.noteActive());
+
+  if (controlsRestorePending_ &&
+      speakerBridge_.renderedBlockCount() != renderedBlocksBefore) {
+    restoreControlValues(controlsRestoreChannel_);
+    controlsRestorePending_ = false;
+  }
 }
 
 bool AmyM5MonophonicSynth::configureMidiControlMapping(
@@ -100,6 +105,27 @@ bool AmyM5MonophonicSynth::configureMidiControlMapping(
     return false;
   }
 
+  return storeMidiControlMapping(mapping, message, length);
+}
+
+bool AmyM5MonophonicSynth::storeMidiControlMapping(
+    const AmyMidiControlMapping& mapping,
+    const char* message,
+    size_t messageLength) {
+  if (message == nullptr || messageLength == 0) {
+    return false;
+  }
+
+  size_t mappingIndex = 0;
+  while (mappingIndex < controlValueCount_ &&
+         controlValues_[mappingIndex].controller != mapping.controller) {
+    ++mappingIndex;
+  }
+  if (mappingIndex == controlValueCount_ &&
+      controlValueCount_ == MAX_MIDI_CONTROL_MAPPINGS) {
+    return false;
+  }
+
   const bool stored = midi_store_mapping(
              static_cast<int>(mapping.midiChannel) + 1,
              MIDI_MAP_TYPE_CC,
@@ -109,7 +135,7 @@ bool AmyM5MonophonicSynth::configureMidiControlMapping(
              mapping.coefficientAtMaximum,
              0.0f,
              message,
-             length) != 0;
+             messageLength) != 0;
   if (stored) {
     if (mappingIndex == controlValueCount_) {
       controlValues_[mappingIndex].controller = mapping.controller;
@@ -133,20 +159,47 @@ bool AmyM5MonophonicSynth::configureJunoPerformanceModulation(
   const size_t channelCount = secondPatchEnabled_ ? 2 : 1;
 
   for (size_t channelIndex = 0; channelIndex < channelCount; ++channelIndex) {
+    const AmyMidiControlMapping mapping{
+        .midiChannel = channels[channelIndex],
+        .controller = controller,
+        .targetOscillator = junoTonalOscillators()[0],
+        .source = AmyModulationSource::Mod0,
+        .target = AmyModulationTarget::Frequency,
+        .coefficientAtMinimum = 0.0f,
+        .coefficientAtMaximum = 0.1f,
+    };
+
+    char message[128] = {};
+    size_t messageLength = 0;
     for (size_t oscillatorIndex = 0;
          oscillatorIndex < junoTonalOscillatorCount();
          ++oscillatorIndex) {
-      const AmyMidiControlMapping mapping{
-          .midiChannel = channels[channelIndex],
-          .controller = controller,
-          .targetOscillator = junoTonalOscillators()[oscillatorIndex],
-          .source = AmyModulationSource::Mod1,
-          .target = AmyModulationTarget::Frequency,
-          .coefficientAtMinimum = 0.0f,
-          .coefficientAtMaximum = 0.1f,
-      };
-      configured = configureMidiControlMapping(mapping) && configured;
+      AmyMidiControlMapping oscillatorMapping = mapping;
+      oscillatorMapping.targetOscillator =
+          junoTonalOscillators()[oscillatorIndex];
+
+      char oscillatorMessage[48] = {};
+      size_t oscillatorMessageLength = 0;
+      if (!formatAmyMidiControlMessage(
+              synthSlot_.synthId(),
+              oscillatorMapping,
+              oscillatorMessage,
+              sizeof(oscillatorMessage),
+              oscillatorMessageLength) ||
+          messageLength + oscillatorMessageLength >= sizeof(message)) {
+        configured = false;
+        break;
+      }
+
+      std::memcpy(
+          message + messageLength,
+          oscillatorMessage,
+          oscillatorMessageLength);
+      messageLength += oscillatorMessageLength;
     }
+
+    configured = storeMidiControlMapping(mapping, message, messageLength) &&
+                 configured;
   }
 
   return configured;
@@ -169,6 +222,15 @@ void AmyM5MonophonicSynth::onNoteEvent(const NoteEvent& event) {
   }
 
   instrumentSink_.onNoteEvent(event);
+
+  if (instrumentSink_.noteActive()) {
+    // A fallback may have reloaded the patch. Defer the replay until the
+    // audio bridge has rendered a block, so AMY has completed that patch load.
+    controlsRestoreChannel_ = instrumentSink_.activeMidiChannel();
+    controlsRestorePending_ = true;
+  } else {
+    controlsRestorePending_ = false;
+  }
 }
 
 void AmyM5MonophonicSynth::onPitchBendEvent(const PitchBendEvent& event) {

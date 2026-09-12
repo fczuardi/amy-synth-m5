@@ -41,8 +41,9 @@ class AmyM5MonophonicSynth : public InstrumentEventSink {
   // oscillator choices remain with the application configuration.
   bool configureMidiControlMapping(const AmyMidiControlMapping& mapping);
 
-  // Applies the package's known Juno performance mappings for the configured
-  // patches. Unknown patches are left untouched and return false.
+  // Applies a Juno-style performance mapping to the configured channels. It
+  // maps the controller to the existing relative Juno LFO/mod0 route on each
+  // tonal oscillator.
   bool configureJunoPerformanceModulation(uint8_t controller = 1);
 
   void setPatch(uint8_t patchNumber);
@@ -70,6 +71,10 @@ class AmyM5MonophonicSynth : public InstrumentEventSink {
 
   void rememberControlValue(const ControlChangeEvent& event);
   void restoreControlValues(uint8_t midiChannel);
+  bool storeMidiControlMapping(
+      const AmyMidiControlMapping& mapping,
+      const char* message,
+      size_t messageLength);
   void sendControlChange(const ControlChangeEvent& event);
 
   AmyM5SpeakerBridge speakerBridge_;
@@ -82,6 +87,8 @@ class AmyM5MonophonicSynth : public InstrumentEventSink {
   uint8_t selectedPatch_ = 0;
   bool secondPatchEnabled_ = false;
   bool begun_ = false;
+  bool controlsRestorePending_ = false;
+  uint8_t controlsRestoreChannel_ = 0;
   StoredControlValue controlValues_[MAX_MIDI_CONTROL_MAPPINGS] = {};
   size_t controlValueCount_ = 0;
 };
