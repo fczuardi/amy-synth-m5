@@ -20,6 +20,7 @@ AmyM5MonophonicSynth synth;
 void setup() {
   M5.begin(M5.config());
   synth.begin(1, 1, 19);
+  synth.configureJunoPerformanceModulation();
   bleMidiInput.setInstrumentEventSink(&synth);
 }
 
@@ -35,8 +36,8 @@ for applications that need different composition defaults.
 ## Two-Channel Experiment
 
 The same `AmyM5MonophonicSynth` facade can also be configured with two MIDI
-channels. Each channel has its own patch and monophonic note policy, while the
-AMY runtime and Core Gray speaker path are shared:
+channels. Each channel selects its own patch while the monophonic note policy,
+AMY runtime, and Core Gray speaker path are shared:
 
 ```cpp
 AmyM5MonophonicSynth synth;
@@ -44,6 +45,7 @@ AmyM5MonophonicSynth synth;
 void setup() {
   M5.begin(M5.config());
   synth.begin(1, 1, 19, 24);
+  synth.configureJunoPerformanceModulation();
   bleMidiInput.setInstrumentEventSink(&synth);
 }
 
@@ -53,15 +55,22 @@ void loop() {
 }
 ```
 
-The first argument selects the AMY slot for MIDI event channel 0 (physical MIDI
-channel 1); event channel 1 (physical MIDI channel 2) uses the next slot. MIDI
+The first argument selects the AMY slot used by MIDI event channel 0 (physical
+MIDI channel 1); event channel 1 (physical MIDI channel 2) selects the second
+patch in that same slot. MIDI
 event channels are deliberately preserved as zero-based status nibbles. Other
 channels are ignored in this two-channel configuration. Pitch bend remains a
 single global AMY control and therefore bends both channels together.
 
 This two-channel configuration is an experimentally validated extension of the
-facade. It remains intentionally monophonic at the performance policy level,
-while allowing one controller to select different AMY patches by MIDI channel.
+facade. It remains globally monophonic at the performance policy level, while
+allowing one controller to select different AMY patches by MIDI channel.
+
+`configureJunoPerformanceModulation()` is an optional convenience default. It
+uses the package's known AMY patch profiles for CC1, so applications do not
+need to know the target oscillator for patches 19 and 24. Unknown patches are
+left without an automatic mapping. `configureMidiControlMapping()` remains
+available for patch profiles discovered by an application.
 
 ## Current Boundaries
 
@@ -132,7 +141,7 @@ it should not carry the M5Unified dependency.
 
 `AmyMonophonicInstrumentSink` also requires `monophonic-instrument`. The
 manifest declares the public PlatformIO Registry package
-`fcz2/monophonic-instrument@0.1.2`, so external consumers do not need a sibling
+`fcz2/monophonic-instrument@0.1.5`, so external consumers do not need a sibling
 checkout or a local `file://` dependency for the shared monophonic note policy.
 
 ## Tests

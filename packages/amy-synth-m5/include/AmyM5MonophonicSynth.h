@@ -41,6 +41,10 @@ class AmyM5MonophonicSynth : public InstrumentEventSink {
   // oscillator choices remain with the application configuration.
   bool configureMidiControlMapping(const AmyMidiControlMapping& mapping);
 
+  // Applies the package's known Juno performance mappings for the configured
+  // patches. Unknown patches are left untouched and return false.
+  bool configureJunoPerformanceModulation(uint8_t controller = 1);
+
   void setPatch(uint8_t patchNumber);
   void panic();
 

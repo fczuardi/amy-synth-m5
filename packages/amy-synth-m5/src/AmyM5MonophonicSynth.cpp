@@ -4,6 +4,27 @@
 
 #include "AmyMidiControlMappingFormatter.h"
 
+namespace {
+struct JunoPerformanceProfile {
+  uint8_t patch;
+  uint8_t targetOscillator;
+};
+
+constexpr JunoPerformanceProfile JUNO_PERFORMANCE_PROFILES[] = {
+    {19, 3},
+    {24, 2},
+};
+
+const JunoPerformanceProfile* findJunoPerformanceProfile(uint8_t patch) {
+  for (const JunoPerformanceProfile& profile : JUNO_PERFORMANCE_PROFILES) {
+    if (profile.patch == patch) {
+      return &profile;
+    }
+  }
+  return nullptr;
+}
+}  // namespace
+
 AmyM5MonophonicSynth::AmyM5MonophonicSynth()
     : audioGate_(speakerBridge_),
       instrumentSink_(runtime_, synthSlot_, audioGate_) {
@@ -101,6 +122,41 @@ bool AmyM5MonophonicSynth::configureMidiControlMapping(
     }
   }
   return stored;
+}
+
+bool AmyM5MonophonicSynth::configureJunoPerformanceModulation(
+    uint8_t controller) {
+  if (!begun_ || controller > 127) {
+    return false;
+  }
+
+  bool configured = false;
+  const uint8_t patches[] = {firstPatch_, secondPatch_};
+  const uint8_t channels[] = {
+      FIRST_MIDI_CHANNEL,
+      SECOND_MIDI_CHANNEL,
+  };
+  const size_t patchCount = secondPatchEnabled_ ? 2 : 1;
+
+  for (size_t i = 0; i < patchCount; ++i) {
+    const JunoPerformanceProfile* profile =
+        findJunoPerformanceProfile(patches[i]);
+    if (profile == nullptr) {
+      continue;
+    }
+
+    const AmyMidiControlMapping mapping{
+        .midiChannel = channels[i],
+        .controller = controller,
+        .targetOscillator = profile->targetOscillator,
+        .target = AmyModulationTarget::Frequency,
+        .coefficientAtMinimum = 0.0f,
+        .coefficientAtMaximum = 0.1f,
+    };
+    configured = configureMidiControlMapping(mapping) || configured;
+  }
+
+  return configured;
 }
 
 void AmyM5MonophonicSynth::setPatch(uint8_t patchNumber) {

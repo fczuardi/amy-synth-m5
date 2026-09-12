@@ -92,26 +92,9 @@ void drawStaticScreen() {
   M5.Display.println("BtnA: panic");
 }
 
-void configureModWheelMappings() {
-  const AmyMidiControlMapping channelOne{
-      .midiChannel = AmyM5MonophonicSynth::FIRST_MIDI_CHANNEL,
-      .controller = 1,
-      .targetOscillator = 3,
-      .target = AmyModulationTarget::Frequency,
-      .coefficientAtMinimum = 0.0f,
-      .coefficientAtMaximum = 0.1f,
-  };
-  const AmyMidiControlMapping channelTwo{
-      .midiChannel = AmyM5MonophonicSynth::SECOND_MIDI_CHANNEL,
-      .controller = 1,
-      .targetOscillator = 2,
-      .target = AmyModulationTarget::Frequency,
-      .coefficientAtMinimum = 0.0f,
-      .coefficientAtMaximum = 0.1f,
-  };
-  Serial.printf("amy: mod_wheel_mapping ch1=%s ch2=%s\n",
-                amySynth.configureMidiControlMapping(channelOne) ? "ok" : "error",
-                amySynth.configureMidiControlMapping(channelTwo) ? "ok" : "error");
+void configureJunoPerformanceModulation() {
+  Serial.printf("amy: juno_modulation=%s\n",
+                amySynth.configureJunoPerformanceModulation() ? "ok" : "error");
 }
 }  // namespace
 
@@ -131,7 +114,7 @@ void setup() {
                 MONO_VOICES);
 
   amySynth.begin(FIRST_SYNTH_ID, MONO_VOICES, FIRST_PATCH, SECOND_PATCH);
-  configureModWheelMappings();
+  configureJunoPerformanceModulation();
   bleMidiInput.setInstrumentEventSink(&amySynth);
   bleMidiInput.setDiagnosticSink(&bleDiagnostics);
   bleMidiInput.begin();
