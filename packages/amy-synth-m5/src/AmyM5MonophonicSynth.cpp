@@ -18,8 +18,8 @@ AmyM5MonophonicSynth::AmyM5MonophonicSynth()
         if (patch != synth->selectedPatch_) {
           synth->synthSlot_.setPatch(patch);
           synth->selectedPatch_ = patch;
-          synth->restoreControlValues(action.midiChannel);
         }
+        synth->restoreControlValues(action.midiChannel);
       },
       this);
 }
