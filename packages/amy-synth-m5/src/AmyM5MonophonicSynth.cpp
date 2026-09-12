@@ -33,7 +33,6 @@ void AmyM5MonophonicSynth::begin(
 }
 
 void AmyM5MonophonicSynth::update() {
-  runtime_.update(instrumentSink_.noteActive());
   audioGate_.update(instrumentSink_.noteActive());
 }
 
@@ -64,11 +63,6 @@ void AmyM5MonophonicSynth::onNoteEvent(const NoteEvent& event) {
 
 void AmyM5MonophonicSynth::onPitchBendEvent(const PitchBendEvent& event) {
   instrumentSink_.onPitchBendEvent(event);
-}
-
-void AmyM5MonophonicSynth::onControlChangeEvent(
-    const ControlChangeEvent& event) {
-  instrumentSink_.onControlChangeEvent(event);
 }
 
 void AmyM5MonophonicSynth::onDisconnected() {
