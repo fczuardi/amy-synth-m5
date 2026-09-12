@@ -83,27 +83,36 @@ void AmyM5MonophonicSynth::panic() {
 }
 
 void AmyM5MonophonicSynth::onNoteEvent(const NoteEvent& event) {
+  if (!supportsMidiChannel(event.channel)) {
+    return;
+  }
+
   if (event.type == NoteEventType::NoteOn) {
-    if (!supportsMidiChannel(event.channel)) {
-      return;
-    }
     const uint8_t patch = patchNumberForChannel(event.channel);
     if (patch != selectedPatch_) {
       synthSlot_.setPatch(patch);
       selectedPatch_ = patch;
     }
   }
+
   instrumentSink_.onNoteEvent(event);
 }
 
 void AmyM5MonophonicSynth::onPitchBendEvent(const PitchBendEvent& event) {
+  if (secondPatchEnabled_ &&
+      (!instrumentSink_.noteActive() ||
+       event.channel != instrumentSink_.activeMidiChannel())) {
+    return;
+  }
   instrumentSink_.onPitchBendEvent(event);
 }
 
 void AmyM5MonophonicSynth::onControlChangeEvent(
     const ControlChangeEvent& event) {
   if (!supportsMidiChannel(event.channel) ||
-      patchNumberForChannel(event.channel) != selectedPatch_) {
+      (secondPatchEnabled_ &&
+       (!instrumentSink_.noteActive() ||
+        event.channel != instrumentSink_.activeMidiChannel()))) {
     return;
   }
 

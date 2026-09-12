@@ -32,8 +32,14 @@ channel corresponds to the patch currently selected in the shared synth slot.
 Channel support is reported separately from the patch number, so AMY patch 0
 remains a valid selectable patch rather than serving as an unsupported-channel
 sentinel.
-The application still supplies the patch-specific oscillator choices, but it
-no longer constructs AMY wire messages or depends on AMY's mapping functions
+
+The shared monophonic policy identifies held notes by MIDI channel and note
+number. This allows a Note Off from a different supported channel to remove a
+held fallback note correctly. Pitch Bend and Control Change remain restricted
+to the channel of the currently sounding note, so the single shared slot does
+not apply global controls to a different channel's performance. The
+application still supplies the patch-specific oscillator choices, but it no
+longer constructs AMY wire messages or depends on AMY's mapping functions
 directly.
 
 ## Verification
@@ -49,8 +55,9 @@ patch: changing channels selects the corresponding patch, and a control-change
 event for the other channel does not modify the currently active patch.
 
 The native test suite covers the pure AMY message formatter for all supported
-targets and invalid input cases. The firmware build remains at 129,811 bytes of
-IRAM used, with 1,261 bytes free.
+targets and invalid input cases. The facade was then rebuilt against
+`monophonic-instrument@0.1.3` to preserve cross-channel fallback identity. The
+firmware build remains at 129,811 bytes of IRAM used, with 1,261 bytes free.
 
 The mapping data remains application configuration because oscillator roles are
 patch-specific. The package facade owns the translation, registration, and

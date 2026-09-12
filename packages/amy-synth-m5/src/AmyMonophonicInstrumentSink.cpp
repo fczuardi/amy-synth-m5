@@ -42,6 +42,10 @@ bool AmyMonophonicInstrumentSink::noteActive() const {
   return notePriority_.isNoteActive();
 }
 
+uint8_t AmyMonophonicInstrumentSink::activeMidiChannel() const {
+  return notePriority_.activeMidiChannel();
+}
+
 uint8_t AmyMonophonicInstrumentSink::activeMidiNote() const {
   return notePriority_.activeMidiNote();
 }

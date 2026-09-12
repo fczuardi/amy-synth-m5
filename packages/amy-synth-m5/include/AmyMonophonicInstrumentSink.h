@@ -27,6 +27,7 @@ class AmyMonophonicInstrumentSink : public InstrumentEventSink {
   void panic();
 
   bool noteActive() const;
+  uint8_t activeMidiChannel() const;
   uint8_t activeMidiNote() const;
   int16_t pitchBend() const;
 
