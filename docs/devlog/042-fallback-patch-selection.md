@@ -33,5 +33,16 @@ usage remains 129,811 bytes, with 1,261 bytes free.
 
 The new hardware check still required is: play a note on channel 1, replace it
 with a note on channel 2, release channel 2, and confirm that the returning
-channel-1 note uses channel 1's patch. No new hardware verification is claimed
-here.
+channel-1 note uses channel 1's patch. This was subsequently validated on the
+Core Gray; the restored modulation was also audibly retained after the
+cross-channel fallback.
+
+## Deferred follow-up
+
+The current implementation deliberately keeps one latest CC1 value for the
+facade's single physical modulation strip. A future slice may experiment with
+remembering CC1 independently for each configured MIDI channel and restoring
+that value when the channel becomes active. This would be state in the AMY
+facade, not a claim that AMY provides per-channel CC1: the underlying AMY
+control remains global. The experiment is deferred until the current global
+behavior is considered complete.

@@ -62,6 +62,12 @@ composition.
 The Core Gray build leaves approximately 1% of IRAM free. This is the current
 practical resource limit and should be measured before adding AMY features.
 
+One deferred experiment is per-channel modulation state. The current facade
+intentionally treats the physical CC1 strip as one global performance control;
+it may later remember a separate CC1 value for each configured MIDI channel and
+restore it when that channel becomes active. That would remain facade policy:
+AMY's underlying CC1 control is still global.
+
 Design notes and next candidate slices live in the devlog chapters under
 `docs/devlog/`.
 
