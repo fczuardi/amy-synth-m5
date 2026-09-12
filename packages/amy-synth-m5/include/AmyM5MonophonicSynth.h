@@ -40,6 +40,7 @@ class AmyM5MonophonicSynth : public InstrumentEventSink {
 
   void onNoteEvent(const NoteEvent& event) override;
   void onPitchBendEvent(const PitchBendEvent& event) override;
+  void onControlChangeEvent(const ControlChangeEvent& event) override;
   void onDisconnected() override;
 
   bool noteActive() const;

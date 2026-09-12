@@ -29,6 +29,12 @@ void loop() {
 }
 ```
 
+When used with a MIDI receiver, CC1 (modulation wheel) controls a conservative
+vibrato depth while a note is active. Other control-change numbers are ignored
+by this facade. Pitch bend remains the vibrato center, and this modulation
+policy is intentionally AMY-specific rather than part of the shared MIDI
+contract.
+
 The lower-level runtime, slot, gate, bridge, and sink headers remain available
 for applications that need different composition defaults.
 

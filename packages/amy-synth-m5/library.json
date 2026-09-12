@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/schema/library.json",
   "name": "amy-synth-m5",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "AMY synth helpers and M5Stack Core Gray speaker bridge",
   "keywords": ["amy", "synth", "m5stack", "core-gray", "audio"],
   "repository": {
@@ -22,7 +22,7 @@
   "dependencies": [
     {
       "name": "firmware-contracts",
-      "version": "https://github.com/fczuardi/embedded-music-experiments.git#c9bde598cff9"
+      "version": "https://github.com/fczuardi/embedded-music-experiments.git#c62653e916bb"
     },
     {
       "owner": "fcz2",

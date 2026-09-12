@@ -27,6 +27,15 @@ void AmyMonophonicInstrumentSink::onPitchBendEvent(const PitchBendEvent& event) 
   audioGate_.wake();
 }
 
+void AmyMonophonicInstrumentSink::onControlChangeEvent(
+    const ControlChangeEvent& event) {
+  if (event.controller != 1) {
+    return;
+  }
+  runtime_.setGlobalModulation(event.value);
+  audioGate_.wake();
+}
+
 void AmyMonophonicInstrumentSink::onDisconnected() {
   panic();
 }
