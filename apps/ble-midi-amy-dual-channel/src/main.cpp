@@ -151,9 +151,10 @@ void logStatus() {
 }
 
 void configureChannelOneModWheelMapping() {
-  // AMY MIDI channels are one-based. v2 is the first Juno sounding oscillator
-  // relative to each voice, while the empty fields preserve other coefficients.
-  constexpr char MAPPING[] = "v2f,,,,,%vZ";
+  // AMY MIDI channels are one-based. The i%iv3 prefix addresses oscillator 3
+  // relative to synth 1, where the patch's audible oscillator is allocated.
+  // Empty fields preserve the other frequency coefficients.
+  constexpr char MAPPING[] = "i%iv3f,,,,,%vZ";
   const int configured = midi_store_mapping(
       1, MIDI_MAP_TYPE_CC, 1, 0, 0.0f, 0.1f, 0.0f, MAPPING,
       std::strlen(MAPPING));
