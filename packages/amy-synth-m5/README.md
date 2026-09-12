@@ -59,8 +59,9 @@ event channels are deliberately preserved as zero-based status nibbles. Other
 channels are ignored in this two-channel configuration. Pitch bend remains a
 single global AMY control and therefore bends both channels together.
 
-This two-channel configuration is an experimental extension of the facade and
-has not yet replaced the published one-channel package or Showcase 3 baseline.
+This two-channel configuration is an experimentally validated extension of the
+facade. It remains intentionally monophonic at the performance policy level,
+while allowing one controller to select different AMY patches by MIDI channel.
 
 ## Current Boundaries
 

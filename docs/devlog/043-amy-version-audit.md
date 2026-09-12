@@ -20,10 +20,9 @@ behavior are already validated.
 
 ## Decision
 
-Keep the published package pinned to `1.2.108` until `1.2.166` completes an
-isolated upgrade check. The candidate must be compared for compilation,
-package consumption, IRAM, DRAM, Flash, audio behavior, and the existing
-hardware checks before any dependency update.
+Adopt AMY `1.2.159` as the newest tested release that fits the Core Gray BLE
+firmware's IRAM budget. The `amy-synth-m5` package advances to `0.2.7` with
+this dependency.
 
 ## Verification
 
@@ -43,11 +42,58 @@ limitation, not an AMY compatibility failure. The AMY package must not regain a
 machine-local dependency to hide it; publishing the matching monophonic release
 is the next required distribution step.
 
-The `1.2.166` candidate was fetched and tested locally. It installed and
-compiled successfully, and the manual browser without BLE linked successfully.
-The BLE monophonic and dual-channel applications both failed at link time with
-the same IRAM overflow: 124 bytes beyond the 131,072-byte IRAM region. The
-published package and application pins were restored to `1.2.108`; no package
-upgrade is claimed.
+The `1.2.166`, `1.2.165`, `1.2.162`, and `1.2.160` candidates were fetched and
+tested locally. They installed and compiled, but both BLE applications failed
+at link time with the same IRAM overflow: 124 bytes beyond the 131,072-byte
+IRAM region.
+
+AMY `1.2.159` is the first newer release in this sequence that links all three
+applications:
+
+- dual-channel BLE application: 130,971 of 131,072 IRAM bytes used, 101 free;
+- BLE monophonic application: 130,971 used, 101 free;
+- manual Juno browser without BLE: 80,607 used, 50,465 free.
+
+The package native tests and all three application builds pass with the
+candidate. The dual-channel BLE firmware was uploaded and validated on Core
+Gray hardware: notes, velocity, pitch bend, CC1 modulation, channel patches,
+fallback, disconnect/reconnect, panic, and idle gating remained correct. The
+monophonic and manual-browser builds passed locally; no separate new hardware
+session is claimed for those applications.
+
+## Compatibility Findings
+
+The public surface used by `amy-synth-m5` remains compatible:
+
+- `AMY_SAMPLE_RATE`, `AMY_BLOCK_SIZE`, `AMY_NCHANS`, `amy_start`, `amy_update`,
+  `amy_default_config`, `amy_default_event`, and `amy_add_event` remain usable
+  by the PCM bridge and synth slot;
+- `COEF_MOD` remains an alias for the original modulation input,
+  `COEF_MOD0`;
+- AMY adds `COEF_MOD1` and changes `mod_source` from one oscillator index to
+  up to two indices. Existing one-source patches can keep using the first
+  source, while a future mapping API must choose explicitly between `mod0` and
+  `mod1` rather than assuming there is only one;
+- `COEF_EXT0` and `COEF_EXT1` already existed in `1.2.108`. They are external
+  coefficient inputs supplied by the host hook, not automatic MIDI controls,
+  so this release does not require a new MIDI or modulation abstraction;
+- several lower-level AMY declarations changed, including internal MIDI
+  decoder helpers and `ks_note_on`/PCM signatures. Our package does not call
+  those helpers directly, which is why the candidate compiles without an
+  adapter rewrite.
+
+The additional modulation source is therefore an additive AMY capability, not
+a reason to expose AMY's internal coefficient arrays in our package. Our
+current mapping remains intentionally narrow: it emits the tested wire command
+for a patch-specific target and does not promise a universal vibrato contract.
+
+The release also adds a runtime `max_buses` configuration. This may be a useful
+future RAM experiment, but it was not changed in this audit because it is
+separate from the API compatibility question and the current patches use the
+existing default successfully.
+
+The `1.2.159` dependency is now adopted in the package and applications. The
+remaining 101-byte IRAM margin is a hard constraint for future feature work;
+new AMY capabilities should be measured before inclusion.
 
 Reference: <https://github.com/shorepine/amy/releases>.
