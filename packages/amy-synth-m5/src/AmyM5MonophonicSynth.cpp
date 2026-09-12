@@ -28,8 +28,10 @@ AmyM5MonophonicSynth::AmyM5MonophonicSynth()
         if (!synth->supportsMidiChannel(action.midiChannel)) {
           return;
         }
-        const uint8_t patch =
-            synth->patchNumberForChannel(action.midiChannel);
+        uint16_t patch = 0;
+        if (!synth->patchNumberForChannel(action.midiChannel, patch)) {
+          return;
+        }
         if (patch != synth->selectedPatch_) {
           synth->synthSlot_.setPatch(patch);
           synth->selectedPatch_ = patch;
@@ -39,31 +41,15 @@ AmyM5MonophonicSynth::AmyM5MonophonicSynth()
 }
 
 void AmyM5MonophonicSynth::begin(
-    uint8_t synthId,
-    uint8_t voiceCount,
-    uint8_t initialPatch) {
+    const AmyM5MonophonicSynthConfiguration& configuration) {
   speakerBridge_.begin();
-  runtime_.begin(synthId);
-  synthSlot_.begin(synthId, voiceCount, initialPatch);
-  firstPatch_ = initialPatch;
-  secondPatch_ = initialPatch;
-  selectedPatch_ = initialPatch;
-  secondPatchEnabled_ = false;
-  begun_ = true;
-}
-
-void AmyM5MonophonicSynth::begin(
-    uint8_t firstSynthId,
-    uint8_t voiceCount,
-    uint8_t firstPatch,
-    uint8_t secondPatch) {
-  speakerBridge_.begin();
-  runtime_.begin(firstSynthId);
-  synthSlot_.begin(firstSynthId, voiceCount, firstPatch);
-  firstPatch_ = firstPatch;
-  secondPatch_ = secondPatch;
-  selectedPatch_ = firstPatch;
-  secondPatchEnabled_ = true;
+  configuration_ = configuration;
+  runtime_.begin(configuration_.synthId);
+  synthSlot_.begin(
+      configuration_.synthId,
+      configuration_.voiceCount,
+      configuration_.patches[0]);
+  selectedPatch_ = configuration_.patches[0];
   begun_ = true;
 }
 
@@ -152,15 +138,11 @@ bool AmyM5MonophonicSynth::configureJunoPerformanceModulation(
   }
 
   bool configured = true;
-  const uint8_t channels[] = {
-      FIRST_MIDI_CHANNEL,
-      SECOND_MIDI_CHANNEL,
-  };
-  const size_t channelCount = secondPatchEnabled_ ? 2 : 1;
-
-  for (size_t channelIndex = 0; channelIndex < channelCount; ++channelIndex) {
+  for (uint8_t channel = 0;
+       channel < AMY_M5_MIDI_CHANNEL_COUNT;
+       ++channel) {
     const AmyMidiControlMapping mapping{
-        .midiChannel = channels[channelIndex],
+        .midiChannel = channel,
         .controller = controller,
         .targetOscillator = junoTonalOscillators()[0],
         .source = AmyModulationSource::Mod0,
@@ -205,11 +187,9 @@ bool AmyM5MonophonicSynth::configureJunoPerformanceModulation(
   return configured;
 }
 
-void AmyM5MonophonicSynth::setPatch(uint8_t patchNumber) {
+void AmyM5MonophonicSynth::setPatch(uint16_t patchNumber) {
   synthSlot_.setPatch(patchNumber);
-  firstPatch_ = patchNumber;
   selectedPatch_ = patchNumber;
-  secondPatchEnabled_ = false;
 }
 
 void AmyM5MonophonicSynth::panic() {
@@ -235,8 +215,8 @@ void AmyM5MonophonicSynth::onNoteEvent(const NoteEvent& event) {
 }
 
 void AmyM5MonophonicSynth::onPitchBendEvent(const PitchBendEvent& event) {
-  if (secondPatchEnabled_ &&
-      (!instrumentSink_.noteActive() ||
+  if (!supportsMidiChannel(event.channel) ||
+      (instrumentSink_.noteActive() &&
        event.channel != instrumentSink_.activeMidiChannel())) {
     return;
   }
@@ -255,9 +235,7 @@ void AmyM5MonophonicSynth::onControlChangeEvent(
     return;
   }
 
-  const uint8_t targetChannel = secondPatchEnabled_
-      ? instrumentSink_.activeMidiChannel()
-      : event.channel;
+  const uint8_t targetChannel = instrumentSink_.activeMidiChannel();
   sendControlChange({targetChannel, event.controller, event.value});
 }
 
@@ -305,27 +283,18 @@ bool AmyM5MonophonicSynth::noteActive() const {
   return instrumentSink_.noteActive();
 }
 
-uint8_t AmyM5MonophonicSynth::patchNumber() const {
+uint16_t AmyM5MonophonicSynth::patchNumber() const {
   return selectedPatch_;
 }
 
 bool AmyM5MonophonicSynth::supportsMidiChannel(uint8_t midiChannel) const {
-  return !secondPatchEnabled_ || midiChannel == FIRST_MIDI_CHANNEL ||
-         midiChannel == SECOND_MIDI_CHANNEL;
+  return midiChannel < AMY_M5_MIDI_CHANNEL_COUNT;
 }
 
-uint8_t AmyM5MonophonicSynth::patchNumberForChannel(
-    uint8_t midiChannel) const {
-  if (!secondPatchEnabled_) {
-    return firstPatch_;
-  }
-  if (midiChannel == FIRST_MIDI_CHANNEL) {
-    return firstPatch_;
-  }
-  if (midiChannel == SECOND_MIDI_CHANNEL) {
-    return secondPatch_;
-  }
-  return 0;
+bool AmyM5MonophonicSynth::patchNumberForChannel(
+    uint8_t midiChannel,
+    uint16_t& patchNumber) const {
+  return amyM5PatchForMidiChannel(configuration_, midiChannel, patchNumber);
 }
 
 int16_t AmyM5MonophonicSynth::pitchBend() const {

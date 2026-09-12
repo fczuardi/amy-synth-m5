@@ -12,7 +12,7 @@ namespace {
 constexpr uint32_t STATUS_LOG_INTERVAL_MS = 1000;
 constexpr uint8_t AMY_SYNTH_ID = 1;
 constexpr uint8_t AMY_MONO_VOICES = 1;
-constexpr uint8_t INITIAL_JUNO_PATCH = 19;
+constexpr uint16_t INITIAL_JUNO_PATCH = 19;
 
 AmyM5SpeakerBridge amyBridge;
 AmyAudioActivityGate audioGate(amyBridge);

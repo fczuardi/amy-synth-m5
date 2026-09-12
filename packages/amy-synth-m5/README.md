@@ -2,24 +2,35 @@
 
 AMY synth helpers and M5Stack speaker bridge code shared by the local apps.
 
-This package is still maturing, but it is published for consumption outside
-the original probe apps. The umbrella Showcase 3 exercises its one-channel
-facade, while the lower-level AMY/M5 boundaries remain available for further
-experiments.
+This package is still alpha, but is published for consumption outside the
+original probe apps. The facade configures one AMY synth slot with a fixed
+patch selection for all 16 MIDI channels while remaining globally monophonic.
+
+Version 0.3.0 intentionally removes the earlier one-channel and two-channel
+`begin()` APIs. There is no backwards-compatibility layer in this alpha.
 
 ## Simple Monophonic Use
 
-`AmyM5MonophonicSynth` is the convenience facade for the common case: one AMY
-slot, one monophonic note policy, and the Core Gray speaker output. The
-application initializes M5Unified first, then uses the facade as its MIDI event
-sink:
+`AmyM5MonophonicSynth` is the convenience facade: one AMY slot, one global
+monophonic note policy, and the Core Gray speaker output. The application
+initializes M5Unified first, then supplies exactly 16 patch entries:
 
 ```cpp
 AmyM5MonophonicSynth synth;
+AmyM5MonophonicSynthConfiguration configuration{
+    .synthId = 1,
+    .voiceCount = 1,
+    .patches = {
+        19, 24, 7, 31,
+        42, 55, 68, 73,
+        80, 88, 96, 104,
+        112, 120, 126, 127,
+    },
+};
 
 void setup() {
   M5.begin(M5.config());
-  synth.begin(1, 1, 19);
+  synth.begin(configuration);
   synth.configureJunoPerformanceModulation();
   bleMidiInput.setInstrumentEventSink(&synth);
 }
@@ -29,49 +40,26 @@ void loop() {
   synth.update();
 }
 ```
+
+`patches[0]` is physical MIDI channel 1 and `patches[15]` is physical MIDI
+channel 16. All 16 channels are always supported. Selecting a different
+channel selects a timbre in the same slot; it does not create 16 voices or a
+multitimbral instrument. The monophonic policy remains global, so held notes
+across channels participate in the same last-note priority and fallback.
+
+The configuration is copied by `begin()`, so its lifetime does not constrain
+the synth. Patch identifiers are `uint16_t`, and patch zero is valid.
 
 The lower-level runtime, slot, gate, bridge, and sink headers remain available
 for applications that need different composition defaults.
 
-## Two-Channel Experiment
-
-The same `AmyM5MonophonicSynth` facade can also be configured with two MIDI
-channels. Each channel selects its own patch while the monophonic note policy,
-AMY runtime, and Core Gray speaker path are shared:
-
-```cpp
-AmyM5MonophonicSynth synth;
-
-void setup() {
-  M5.begin(M5.config());
-  synth.begin(1, 1, 19, 24);
-  synth.configureJunoPerformanceModulation();
-  bleMidiInput.setInstrumentEventSink(&synth);
-}
-
-void loop() {
-  bleMidiInput.update();
-  synth.update();
-}
-```
-
-The first argument selects the AMY slot used by MIDI event channel 0 (physical
-MIDI channel 1); event channel 1 (physical MIDI channel 2) selects the second
-patch in that same slot. MIDI
-event channels are deliberately preserved as zero-based status nibbles. Other
-channels are ignored in this two-channel configuration. Pitch bend remains a
-single global AMY control and therefore bends both channels together.
-
-This two-channel configuration is an experimentally validated extension of the
-facade. It remains globally monophonic at the performance policy level, while
-allowing one controller to select different AMY patches by MIDI channel.
-
 `configureJunoPerformanceModulation()` is an optional convenience default. It
 uses AMY's fixed Juno oscillator layout for CC1: the patch LFO on relative
 oscillator 1 modulates the frequency of tonal oscillators 2, 3, and 4 through
-`mod1`. This applies to Juno patches without requiring the application to know
-their individual target oscillator. `configureMidiControlMapping()` remains
-available for patches or targets outside that layout.
+the hardware-validated `mod0` route. It registers one compound mapping per
+channel, because AMY accepts only one mapping for a channel/controller pair.
+`configureMidiControlMapping()` remains available for patches or targets
+outside that layout.
 
 ## Current Boundaries
 
@@ -123,7 +111,7 @@ available for patches or targets outside that layout.
 This library does not own BLE MIDI, application UI, patch browsing policy,
 polyphonic allocation policy, or generic cross-board audio output.
 
-## Package Candidate Shape
+## Package Shape
 
 This package currently contains two families with different portability:
 
@@ -151,5 +139,6 @@ checkout or a local `file://` dependency for the shared monophonic note policy.
 pio test -e native
 ```
 
-The native tests currently cover pure pitch-bend clamping and conversion. The
-AMY/M5 speaker path remains covered by firmware builds and hardware validation.
+The native tests cover pure pitch-bend clamping/conversion and the fixed
+channel-to-patch configuration helper. The AMY/M5 speaker path remains covered
+by firmware builds and hardware validation.

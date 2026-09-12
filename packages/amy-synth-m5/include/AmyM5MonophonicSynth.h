@@ -5,6 +5,7 @@
 #include "AmyAudioActivityGate.h"
 #include "AmyMonophonicInstrumentSink.h"
 #include "AmyM5SpeakerBridge.h"
+#include "AmyM5MonophonicSynthConfiguration.h"
 #include "AmyMidiControlMapping.h"
 #include "AmyRuntime.h"
 #include "AmySynthSlot.h"
@@ -14,26 +15,15 @@
 //
 // The application still initializes M5Unified before calling begin(). This
 // facade owns the AMY runtime, one synth slot, the M5 speaker bridge, the
-// activity gate, and one monophonic event policy. In the optional two-patch
-// mode, the MIDI channel selects the patch for the next note.
+// activity gate, and one monophonic event policy. Every MIDI channel selects a
+// patch from the copied fixed-size configuration; this is not multitimbrality.
 class AmyM5MonophonicSynth : public InstrumentEventSink {
  public:
-  // MIDI event channels are preserved as zero-based status nibbles: channel
-  // 0 is the physical MIDI channel 1, and channel 1 is physical channel 2.
-  static constexpr uint8_t FIRST_MIDI_CHANNEL = 0;
-  static constexpr uint8_t SECOND_MIDI_CHANNEL = 1;
-
   AmyM5MonophonicSynth();
 
-  // Configures one patch for a global monophonic instrument.
-  void begin(uint8_t synthId, uint8_t voiceCount, uint8_t initialPatch);
-
-  // Configures two patches selected by the raw MIDI channels 0 and 1.
-  void begin(
-      uint8_t firstSynthId,
-      uint8_t voiceCount,
-    uint8_t firstPatch,
-    uint8_t secondPatch);
+  // Copies the fixed-size configuration, so the caller may release it after
+  // begin() returns.
+  void begin(const AmyM5MonophonicSynthConfiguration& configuration);
   void update();
 
   // Registers a MIDI CC mapping using AMY's native mapping mechanism. The
@@ -46,7 +36,7 @@ class AmyM5MonophonicSynth : public InstrumentEventSink {
   // tonal oscillator.
   bool configureJunoPerformanceModulation(uint8_t controller = 1);
 
-  void setPatch(uint8_t patchNumber);
+  void setPatch(uint16_t patchNumber);
   void panic();
 
   void onNoteEvent(const NoteEvent& event) override;
@@ -55,9 +45,9 @@ class AmyM5MonophonicSynth : public InstrumentEventSink {
   void onDisconnected() override;
 
   bool noteActive() const;
-  uint8_t patchNumber() const;
+  uint16_t patchNumber() const;
   bool supportsMidiChannel(uint8_t midiChannel) const;
-  uint8_t patchNumberForChannel(uint8_t midiChannel) const;
+  bool patchNumberForChannel(uint8_t midiChannel, uint16_t& patchNumber) const;
   int16_t pitchBend() const;
 
  private:
@@ -82,10 +72,8 @@ class AmyM5MonophonicSynth : public InstrumentEventSink {
   AmyRuntime runtime_;
   AmySynthSlot synthSlot_;
   AmyMonophonicInstrumentSink instrumentSink_;
-  uint8_t firstPatch_ = 0;
-  uint8_t secondPatch_ = 0;
-  uint8_t selectedPatch_ = 0;
-  bool secondPatchEnabled_ = false;
+  AmyM5MonophonicSynthConfiguration configuration_ = {};
+  uint16_t selectedPatch_ = 0;
   bool begun_ = false;
   bool controlsRestorePending_ = false;
   uint8_t controlsRestoreChannel_ = 0;

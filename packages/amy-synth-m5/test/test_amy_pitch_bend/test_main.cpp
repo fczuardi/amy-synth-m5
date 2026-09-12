@@ -3,7 +3,58 @@
 #include <cstring>
 
 #include "AmyMidiControlMappingFormatter.h"
+#include "AmyM5MonophonicSynthConfiguration.h"
 #include "AmyPitchBend.h"
+
+void test_configuration_maps_first_channel() {
+  AmyM5MonophonicSynthConfiguration configuration{};
+  configuration.patches[0] = 19;
+  uint16_t patch = 0;
+
+  TEST_ASSERT_TRUE(amyM5PatchForMidiChannel(configuration, 0, patch));
+  TEST_ASSERT_EQUAL_UINT16(19, patch);
+}
+
+void test_configuration_maps_last_channel() {
+  AmyM5MonophonicSynthConfiguration configuration{};
+  configuration.patches[15] = 127;
+  uint16_t patch = 0;
+
+  TEST_ASSERT_TRUE(amyM5PatchForMidiChannel(configuration, 15, patch));
+  TEST_ASSERT_EQUAL_UINT16(127, patch);
+}
+
+void test_configuration_maps_middle_channels() {
+  AmyM5MonophonicSynthConfiguration configuration{};
+  configuration.patches[3] = 300;
+  configuration.patches[8] = 1024;
+  uint16_t patch = 0;
+
+  TEST_ASSERT_TRUE(amyM5PatchForMidiChannel(configuration, 3, patch));
+  TEST_ASSERT_EQUAL_UINT16(300, patch);
+  TEST_ASSERT_TRUE(amyM5PatchForMidiChannel(configuration, 8, patch));
+  TEST_ASSERT_EQUAL_UINT16(1024, patch);
+}
+
+void test_configuration_accepts_patch_zero() {
+  AmyM5MonophonicSynthConfiguration configuration{};
+  uint16_t patch = 99;
+
+  TEST_ASSERT_TRUE(amyM5PatchForMidiChannel(configuration, 4, patch));
+  TEST_ASSERT_EQUAL_UINT16(0, patch);
+}
+
+void test_configuration_rejects_malformed_channel() {
+  AmyM5MonophonicSynthConfiguration configuration{};
+  uint16_t patch = 99;
+
+  TEST_ASSERT_FALSE(amyM5PatchForMidiChannel(configuration, 16, patch));
+  TEST_ASSERT_EQUAL_UINT16(99, patch);
+}
+
+void test_configuration_has_all_midi_channels() {
+  TEST_ASSERT_EQUAL_UINT(16, AMY_M5_MIDI_CHANNEL_COUNT);
+}
 
 void test_clamp_preserves_valid_values() {
   TEST_ASSERT_EQUAL_INT16(0, AmyPitchBend::clamp(0));
@@ -117,6 +168,12 @@ void test_mapping_formatter_rejects_small_buffer() {
 
 int main(int, char**) {
   UNITY_BEGIN();
+  RUN_TEST(test_configuration_maps_first_channel);
+  RUN_TEST(test_configuration_maps_last_channel);
+  RUN_TEST(test_configuration_maps_middle_channels);
+  RUN_TEST(test_configuration_accepts_patch_zero);
+  RUN_TEST(test_configuration_rejects_malformed_channel);
+  RUN_TEST(test_configuration_has_all_midi_channels);
   RUN_TEST(test_clamp_preserves_valid_values);
   RUN_TEST(test_clamp_limits_out_of_range_values);
   RUN_TEST(test_to_octaves_maps_center_to_zero);

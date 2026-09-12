@@ -1,27 +1,28 @@
 #include <Arduino.h>
 
-#include "AmyAudioActivityGate.h"
-#include "AmyM5SpeakerBridge.h"
-#include "AmyMonophonicInstrumentSink.h"
-#include "AmyRuntime.h"
-#include "AmySynthSlot.h"
+#include "AmyM5MonophonicSynth.h"
 
-AmyM5SpeakerBridge bridge;
-AmyAudioActivityGate gate(bridge);
-AmyRuntime runtime;
-AmySynthSlot slot;
-AmyMonophonicInstrumentSink instrumentSink(runtime, slot, gate);
+AmyM5MonophonicSynth amySynth;
+
+const AmyM5MonophonicSynthConfiguration configuration{
+    .synthId = 1,
+    .voiceCount = 1,
+    .patches = {
+        19, 24, 7, 31,
+        42, 55, 68, 73,
+        80, 88, 96, 104,
+        112, 120, 126, 127,
+    },
+};
 
 void setup() {
-  bridge.begin();
-  runtime.begin(1);
-  slot.begin(1, 1, 19);
-  instrumentSink.onPitchBendEvent({1, 0});
-  instrumentSink.onNoteEvent({NoteEventType::NoteOn, 1, 72, 100});
-  instrumentSink.onNoteEvent({NoteEventType::NoteOff, 1, 72, 0});
-  instrumentSink.panic();
+  amySynth.begin(configuration);
+  amySynth.onPitchBendEvent({0, 0});
+  amySynth.onNoteEvent({NoteEventType::NoteOn, 0, 72, 100});
+  amySynth.onNoteEvent({NoteEventType::NoteOff, 0, 72, 0});
+  amySynth.panic();
 }
 
 void loop() {
-  gate.update(false);
+  amySynth.update();
 }

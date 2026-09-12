@@ -4,7 +4,7 @@
 
 void AmySynthSlot::begin(uint8_t synthId,
                          uint8_t voiceCount,
-                         uint8_t initialPatch) {
+                         uint16_t initialPatch) {
   synthId_ = synthId;
   voiceCount_ = voiceCount;
   patchNumber_ = initialPatch;
@@ -14,7 +14,7 @@ void AmySynthSlot::begin(uint8_t synthId,
   setPatch(patchNumber_);
 }
 
-void AmySynthSlot::setPatch(uint8_t patchNumber) {
+void AmySynthSlot::setPatch(uint16_t patchNumber) {
   patchNumber_ = patchNumber;
   if (!begun_) {
     return;
@@ -64,6 +64,6 @@ uint8_t AmySynthSlot::voiceCount() const {
   return voiceCount_;
 }
 
-uint8_t AmySynthSlot::patchNumber() const {
+uint16_t AmySynthSlot::patchNumber() const {
   return patchNumber_;
 }

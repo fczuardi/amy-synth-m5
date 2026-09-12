@@ -19,6 +19,7 @@ root.
 
 - `apps/manual-juno-browser/`: the currently validated hardware app.
 - `apps/ble-midi-amy/`: BLE MIDI input routed to AMY through the Core Gray
+- `apps/ble-midi-amy-juno/`: all-16-channel Juno patch selection and modulation
   speaker path.
 - `packages/amy-synth-m5/`: published package for AMY synth control and the
   M5Stack Core Gray speaker bridge.
@@ -74,4 +75,11 @@ Design notes and next candidate slices live in the devlog chapters under
 ```bash
 cd apps/manual-juno-browser
 pio run
+```
+
+From the repository root, upload the 16-channel BLE MIDI Juno audition app to
+the M5Stack Core Gray with:
+
+```bash
+just upload-juno
 ```

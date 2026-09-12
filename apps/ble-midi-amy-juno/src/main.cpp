@@ -5,10 +5,18 @@
 #include "BleMidiInput.h"
 
 namespace {
-constexpr uint8_t FIRST_SYNTH_ID = 1;
-constexpr uint8_t MONO_VOICES = 1;
-constexpr uint8_t FIRST_PATCH = 19;
-constexpr uint8_t SECOND_PATCH = 24;
+constexpr AmyM5MonophonicSynthConfiguration SYNTH_CONFIGURATION{
+    .synthId = 1,
+    .voiceCount = 1,
+    .patches = {
+        // Keep this table easy to edit while testing the Juno bank. The
+        // selected entries are deliberately spread through the 128 presets.
+        0, 9, 18, 24,
+        32, 40, 49, 54,
+        64, 73, 80, 89,
+        96, 105, 114, 120,
+    },
+};
 
 AmyM5MonophonicSynth amySynth;
 BleMidiInput bleMidiInput;
@@ -83,12 +91,14 @@ void drawStaticScreen() {
   M5.Display.setTextColor(TFT_GREEN, TFT_BLACK);
   M5.Display.setTextSize(2);
   M5.Display.println("BLE MIDI");
-  M5.Display.println("AMY DUAL");
+  M5.Display.println("AMY JUNO");
   M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
   M5.Display.setTextSize(1);
   M5.Display.println();
-  M5.Display.println("Ch 1: patch 19");
-  M5.Display.println("Ch 2: patch 24");
+  M5.Display.println("Ch 1: patch 0");
+  M5.Display.println("Ch 2: patch 9");
+  M5.Display.println("Ch 3: patch 18");
+  M5.Display.println("Ch 8: patch 54");
   M5.Display.println("BtnA: panic");
 }
 
@@ -105,15 +115,14 @@ void setup() {
   drawStaticScreen();
 
   Serial.println();
-  Serial.println("BLE MIDI AMY dual-channel Core Gray probe");
-  Serial.printf("amy: sample_rate=%u block_size=%u first_patch=%u second_patch=%u voices=%u\n",
+  Serial.println("BLE MIDI AMY Juno Core Gray application");
+  Serial.printf("amy: sample_rate=%u block_size=%u patches=%u voices=%u\n",
                 AMY_SAMPLE_RATE,
                 AMY_BLOCK_SIZE,
-                FIRST_PATCH,
-                SECOND_PATCH,
-                MONO_VOICES);
+                AMY_M5_MIDI_CHANNEL_COUNT,
+                SYNTH_CONFIGURATION.voiceCount);
 
-  amySynth.begin(FIRST_SYNTH_ID, MONO_VOICES, FIRST_PATCH, SECOND_PATCH);
+  amySynth.begin(SYNTH_CONFIGURATION);
   configureJunoPerformanceModulation();
   bleMidiInput.setInstrumentEventSink(&amySynth);
   bleMidiInput.setDiagnosticSink(&bleDiagnostics);

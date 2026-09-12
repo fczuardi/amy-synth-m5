@@ -13,7 +13,7 @@ constexpr uint8_t AUDITION_NOTE = 72;
 
 constexpr uint8_t AMY_SYNTH_ID = 1;
 constexpr uint8_t AMY_MONO_VOICES = 1;
-constexpr uint8_t JUNO_PATCH_COUNT = 128;
+constexpr uint16_t JUNO_PATCH_COUNT = 128;
 constexpr float AMY_NOTE_VELOCITY = 1.0f;
 constexpr int16_t PITCH_BEND_CENTER = 0;
 constexpr int16_t PITCH_BEND_DOWN = -8192;
@@ -49,12 +49,12 @@ void drawScreen(const char* stateLabel) {
   M5.Display.println(stateLabel);
 }
 
-uint8_t activePatchNumber() {
-  return static_cast<uint8_t>(activePatchIndex);
+uint16_t activePatchNumber() {
+  return static_cast<uint16_t>(activePatchIndex);
 }
 
 void configureActivePatch() {
-  const uint8_t patchNumber = activePatchNumber();
+  const uint16_t patchNumber = activePatchNumber();
   synthSlot.setPatch(patchNumber);
 
   Serial.printf("amy: patch_configured synth=%u patch=%u voices=%u\n",
