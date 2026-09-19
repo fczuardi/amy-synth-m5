@@ -8,6 +8,7 @@ patch selection for all 16 MIDI channels while remaining globally monophonic.
 
 Version 0.3.0 intentionally removes the earlier one-channel and two-channel
 `begin()` APIs. There is no backwards-compatibility layer in this alpha.
+Version 0.3.1 corrects idle pitch-strip centering without changing that API.
 
 ## Simple Monophonic Use
 
