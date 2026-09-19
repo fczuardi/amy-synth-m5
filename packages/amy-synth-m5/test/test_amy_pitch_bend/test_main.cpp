@@ -4,7 +4,20 @@
 
 #include "AmyMidiControlMappingFormatter.h"
 #include "AmyM5MonophonicSynthConfiguration.h"
+#include "AmyM5PitchBendPolicy.h"
 #include "AmyPitchBend.h"
+
+void test_pitch_bend_policy_rejects_event_while_idle() {
+  TEST_ASSERT_FALSE(amyM5ShouldApplyPitchBend(false, 2, 2));
+}
+
+void test_pitch_bend_policy_accepts_active_channel() {
+  TEST_ASSERT_TRUE(amyM5ShouldApplyPitchBend(true, 2, 2));
+}
+
+void test_pitch_bend_policy_rejects_other_channel() {
+  TEST_ASSERT_FALSE(amyM5ShouldApplyPitchBend(true, 2, 11));
+}
 
 void test_configuration_maps_first_channel() {
   AmyM5MonophonicSynthConfiguration configuration{};
@@ -168,6 +181,9 @@ void test_mapping_formatter_rejects_small_buffer() {
 
 int main(int, char**) {
   UNITY_BEGIN();
+  RUN_TEST(test_pitch_bend_policy_rejects_event_while_idle);
+  RUN_TEST(test_pitch_bend_policy_accepts_active_channel);
+  RUN_TEST(test_pitch_bend_policy_rejects_other_channel);
   RUN_TEST(test_configuration_maps_first_channel);
   RUN_TEST(test_configuration_maps_last_channel);
   RUN_TEST(test_configuration_maps_middle_channels);

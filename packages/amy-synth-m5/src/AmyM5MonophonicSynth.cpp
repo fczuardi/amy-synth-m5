@@ -4,6 +4,7 @@
 
 #include <AMY-Arduino.h>
 
+#include "AmyM5PitchBendPolicy.h"
 #include "AmyMidiControlMappingFormatter.h"
 
 namespace {
@@ -216,8 +217,10 @@ void AmyM5MonophonicSynth::onNoteEvent(const NoteEvent& event) {
 
 void AmyM5MonophonicSynth::onPitchBendEvent(const PitchBendEvent& event) {
   if (!supportsMidiChannel(event.channel) ||
-      (instrumentSink_.noteActive() &&
-       event.channel != instrumentSink_.activeMidiChannel())) {
+      !amyM5ShouldApplyPitchBend(
+          instrumentSink_.noteActive(),
+          instrumentSink_.activeMidiChannel(),
+          event.channel)) {
     return;
   }
   instrumentSink_.onPitchBendEvent(event);

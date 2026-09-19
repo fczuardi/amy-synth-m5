@@ -47,6 +47,11 @@ channel selects a timbre in the same slot; it does not create 16 voices or a
 multitimbral instrument. The monophonic policy remains global, so held notes
 across channels participate in the same last-note priority and fallback.
 
+Pitch Bend is applied only while a note is active and only when the event is
+on that note's MIDI channel. Bend events received while idle or from another
+channel are ignored, preventing global AMY bend state from leaking into a
+later note.
+
 The configuration is copied by `begin()`, so its lifetime does not constrain
 the synth. Patch identifiers are `uint16_t`, and patch zero is valid.
 
