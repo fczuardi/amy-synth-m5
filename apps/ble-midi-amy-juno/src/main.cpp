@@ -50,10 +50,12 @@ class SerialBleDiagnostics : public BleMidiInputDiagnosticSink {
       uint8_t channel,
       int bendValue,
       uint32_t activityAtMs) override {
-    Serial.printf("ble_midi: pitch_bend channel=%u value=%d activity_ms=%lu\n",
-                  channel,
-                  bendValue,
-                  static_cast<unsigned long>(activityAtMs));
+    // Pitch strips emit dense bursts of events. Logging every value can block
+    // the firmware loop long enough to disturb audio, so keep this high-rate
+    // diagnostic out of the performance app.
+    (void) channel;
+    (void) bendValue;
+    (void) activityAtMs;
   }
 
   void onBleMidiControlChange(
