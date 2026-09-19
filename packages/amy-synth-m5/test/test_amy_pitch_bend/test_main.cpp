@@ -7,16 +7,30 @@
 #include "AmyM5PitchBendPolicy.h"
 #include "AmyPitchBend.h"
 
-void test_pitch_bend_policy_rejects_event_while_idle() {
-  TEST_ASSERT_FALSE(amyM5ShouldApplyPitchBend(false, 2, 2));
+void test_pitch_bend_policy_rejects_non_center_event_while_idle() {
+  TEST_ASSERT_FALSE(amyM5ShouldApplyPitchBend(false, 2, 2, 129));
+}
+
+void test_pitch_bend_policy_accepts_center_event_while_idle() {
+  TEST_ASSERT_TRUE(amyM5ShouldApplyPitchBend(false, 2, 11, 64));
+  TEST_ASSERT_TRUE(amyM5ShouldApplyPitchBend(false, 2, 11, -128));
+  TEST_ASSERT_TRUE(amyM5ShouldApplyPitchBend(false, 2, 11, 128));
+}
+
+void test_pitch_bend_policy_normalizes_center_dead_zone() {
+  TEST_ASSERT_EQUAL_INT16(0, amyM5NormalizePitchBendCenter(64));
+  TEST_ASSERT_EQUAL_INT16(0, amyM5NormalizePitchBendCenter(-128));
+  TEST_ASSERT_EQUAL_INT16(0, amyM5NormalizePitchBendCenter(128));
+  TEST_ASSERT_EQUAL_INT16(-129, amyM5NormalizePitchBendCenter(-129));
+  TEST_ASSERT_EQUAL_INT16(129, amyM5NormalizePitchBendCenter(129));
 }
 
 void test_pitch_bend_policy_accepts_active_channel() {
-  TEST_ASSERT_TRUE(amyM5ShouldApplyPitchBend(true, 2, 2));
+  TEST_ASSERT_TRUE(amyM5ShouldApplyPitchBend(true, 2, 2, 8191));
 }
 
 void test_pitch_bend_policy_rejects_other_channel() {
-  TEST_ASSERT_FALSE(amyM5ShouldApplyPitchBend(true, 2, 11));
+  TEST_ASSERT_FALSE(amyM5ShouldApplyPitchBend(true, 2, 11, 0));
 }
 
 void test_configuration_maps_first_channel() {
@@ -181,7 +195,9 @@ void test_mapping_formatter_rejects_small_buffer() {
 
 int main(int, char**) {
   UNITY_BEGIN();
-  RUN_TEST(test_pitch_bend_policy_rejects_event_while_idle);
+  RUN_TEST(test_pitch_bend_policy_rejects_non_center_event_while_idle);
+  RUN_TEST(test_pitch_bend_policy_accepts_center_event_while_idle);
+  RUN_TEST(test_pitch_bend_policy_normalizes_center_dead_zone);
   RUN_TEST(test_pitch_bend_policy_accepts_active_channel);
   RUN_TEST(test_pitch_bend_policy_rejects_other_channel);
   RUN_TEST(test_configuration_maps_first_channel);

@@ -211,14 +211,16 @@ void AmyM5MonophonicSynth::onNoteEvent(const NoteEvent& event) {
 }
 
 void AmyM5MonophonicSynth::onPitchBendEvent(const PitchBendEvent& event) {
+  const int16_t normalizedValue = amyM5NormalizePitchBendCenter(event.value);
   if (!supportsMidiChannel(event.channel) ||
       !amyM5ShouldApplyPitchBend(
           instrumentSink_.noteActive(),
           instrumentSink_.activeMidiChannel(),
-          event.channel)) {
+          event.channel,
+          normalizedValue)) {
     return;
   }
-  instrumentSink_.onPitchBendEvent(event);
+  instrumentSink_.onPitchBendEvent({event.channel, normalizedValue});
 }
 
 void AmyM5MonophonicSynth::onControlChangeEvent(
