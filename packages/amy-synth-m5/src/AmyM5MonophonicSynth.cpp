@@ -188,11 +188,6 @@ bool AmyM5MonophonicSynth::configureJunoPerformanceModulation(
   return configured;
 }
 
-void AmyM5MonophonicSynth::setPatch(uint16_t patchNumber) {
-  synthSlot_.setPatch(patchNumber);
-  selectedPatch_ = patchNumber;
-}
-
 void AmyM5MonophonicSynth::panic() {
   controlsRestorePending_ = false;
   instrumentSink_.panic();

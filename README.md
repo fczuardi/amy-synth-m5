@@ -19,8 +19,8 @@ root.
 
 - `apps/manual-juno-browser/`: the currently validated hardware app.
 - `apps/ble-midi-amy/`: BLE MIDI input routed to AMY through the Core Gray
-- `apps/ble-midi-amy-juno/`: all-16-channel Juno patch selection and modulation
   speaker path.
+- `apps/ble-midi-amy-juno/`: all-16-channel Juno patch selection and modulation.
 - `packages/amy-synth-m5/`: published package for AMY synth control and the
   M5Stack Core Gray speaker bridge.
 - `ci/consumers/amy-synth-m5/`: package consumer build used by CI.

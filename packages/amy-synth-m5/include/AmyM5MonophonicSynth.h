@@ -36,7 +36,6 @@ class AmyM5MonophonicSynth : public InstrumentEventSink {
   // tonal oscillator.
   bool configureJunoPerformanceModulation(uint8_t controller = 1);
 
-  void setPatch(uint16_t patchNumber);
   void panic();
 
   void onNoteEvent(const NoteEvent& event) override;
