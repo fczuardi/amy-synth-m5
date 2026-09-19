@@ -30,6 +30,12 @@ still follows its `stable` release, so a numeric comparison would not yet have
 a fully pinned toolchain baseline. Link failure still protects the physical
 IRAM limit, and every successful CI run records the detailed memory table.
 
+The first CI run exposed that the current pioarduino `stable` platform requires
+PlatformIO Core 6.2.0. Both the normal CI and package-publication workflows now
+pin Core 6.2.0; their former 6.1.19 pin failed dependency resolution before the
+firmware could build. This is a toolchain compatibility update, not a firmware
+behavior change.
+
 ## Verification
 
 The CI-equivalent local command is:
