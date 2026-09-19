@@ -58,6 +58,9 @@ jobs:
       - name: Build isolated consumer
         run: pio run -d ci/consumers/amy-synth-m5
 
+      - name: Build Juno app and report memory
+        run: pio run -d apps/ble-midi-amy-juno -e m5stack-core-gray-ci
+
       - name: Publish package to PlatformIO Registry
         env:
           PLATFORMIO_AUTH_TOKEN: ${{ secrets.PLATFORMIO_AUTH_TOKEN }}

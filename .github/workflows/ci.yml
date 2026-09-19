@@ -22,7 +22,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: .platformio-home
-          key: platformio-amy-synth-m5-${{ runner.os }}-${{ hashFiles('packages/amy-synth-m5/library.json', 'ci/consumers/amy-synth-m5/platformio.ini', 'ci/consumers/amy-synth-m5/src/main.cpp') }}
+          key: platformio-amy-synth-m5-${{ runner.os }}-${{ hashFiles('packages/amy-synth-m5/library.json', 'ci/consumers/amy-synth-m5/platformio.ini', 'ci/consumers/amy-synth-m5/src/main.cpp', 'apps/ble-midi-amy-juno/platformio.ini', 'apps/ble-midi-amy-juno/src/main.cpp') }}
           restore-keys: |
             platformio-amy-synth-m5-${{ runner.os }}-
 
@@ -34,3 +34,6 @@ jobs:
 
       - name: Build AMY synth M5 consumer
         run: env PLATFORMIO_CORE_DIR=.platformio-home pio run -d ci/consumers/amy-synth-m5
+
+      - name: Build Juno app and report memory
+        run: env PLATFORMIO_CORE_DIR=.platformio-home pio run -d apps/ble-midi-amy-juno -e m5stack-core-gray-ci

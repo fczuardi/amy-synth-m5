@@ -33,3 +33,16 @@ pio run -d apps/ble-midi-amy-juno -e m5stack-core-gray
 ```
 
 No new hardware behavior is introduced by this API cleanup.
+
+## Future direction
+
+A live-performance UI may eventually need to change the patch assigned to one
+specific MIDI channel at runtime. That operation would be explicit about the
+channel, conceptually `setPatchForMidiChannel(channel, patch)`, rather than
+temporarily replacing the patch loaded in the shared AMY slot.
+
+That API is deliberately deferred until an M5 screen-and-button experiment can
+answer whether changing the active channel applies immediately or on the next
+Note On, how it interacts with a sounding note, and whether assignments persist
+across reboot. The immutable-after-`begin()` configuration remains the honest
+0.3.0 boundary.
