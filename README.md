@@ -18,6 +18,8 @@ root.
 ## Layout
 
 - `apps/manual-juno-browser/`: the currently validated hardware app.
+- `apps/manual-drum-browser/`: a Core Gray browser for AMY's legacy GM drum
+  kit and built-in-speaker limits.
 - `apps/ble-midi-amy/`: BLE MIDI input routed to AMY through the Core Gray
   speaker path.
 - `apps/ble-midi-amy-juno/`: all-16-channel Juno patch selection and modulation.
@@ -46,6 +48,13 @@ The current probe is a manual AMY/Juno patch browser:
 
 While a note is held, buttons B and C temporarily become pitch-bend controls
 for the held note, bending down/up and returning to center on release.
+
+The manual drum browser separately validates AMY's reduced legacy GM kit at
+patch `258` without the monophonic sink. Hardware testing classified the useful
+individual sounds and retained audible additions through a cumulative test of
+eight simultaneous one-shots. This is sufficient to unblock the planned
+four-track Calculator Face step sequencer; continuous clock and pattern timing
+will be validated in that consuming app.
 
 `packages/amy-synth-m5` is a published package. It contains AMY control helpers
 plus the validated Core Gray output path: `AmyM5SpeakerBridge`
