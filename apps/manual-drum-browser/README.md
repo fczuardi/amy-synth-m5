@@ -27,6 +27,20 @@ just upload-drums
 pio device monitor --baud 115200
 ```
 
+The same browser has an experimental native SDL target. It uses the host AMY C
+core and M5Unified/M5GFX SDL backends, so its display and audio can be tested
+with the desktop window and headphones:
+
+```sh
+just build-drums-pc
+just run-drums-pc
+```
+
+The native target is currently a compatibility experiment, not a replacement
+for hardware validation. SDL audio-driver behavior can vary by desktop setup.
+The native target uses the standard arrow-key mappings provided by M5GFX for
+the Core Gray buttons.
+
 Layer mode compares cumulative combinations from an ordered test set of eight
 sounds that were useful in the individual hardware pass:
 

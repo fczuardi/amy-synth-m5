@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
-#include <AMY-Arduino.h>
+#include "AmyCore.h"
 #include <M5Unified.h>
 
 // Core Gray AMY PCM output bridge.

@@ -1,6 +1,6 @@
 #include "AmyRuntime.h"
 
-#include <AMY-Arduino.h>
+#include "AmyCore.h"
 
 #include "AmyPitchBend.h"
 

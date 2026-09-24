@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-#include <AMY-Arduino.h>
+#include "AmyCore.h"
 
 #include "AmyM5PitchBendPolicy.h"
 #include "AmyMidiControlMappingFormatter.h"

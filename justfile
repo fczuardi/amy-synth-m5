@@ -5,6 +5,7 @@ juno_app := "apps/ble-midi-amy-juno"
 juno_env := "m5stack-core-gray"
 drum_app := "apps/manual-drum-browser"
 drum_env := "m5stack-core-gray"
+drum_pc_env := "native-sdl"
 
 # Show available commands.
 default:
@@ -17,6 +18,14 @@ upload-juno:
 # Build the manual AMY drum-kit browser for an M5Stack Core Gray.
 build-drums:
     pio run -d {{drum_app}} -e {{drum_env}}
+
+# Build the manual AMY drum-kit browser for the native SDL target.
+build-drums-pc:
+    pio run -d {{drum_app}} -e {{drum_pc_env}}
+
+# Run the native SDL drum browser after building it.
+run-drums-pc: build-drums-pc
+    {{drum_app}}/.pio/build/{{drum_pc_env}}/program
 
 # Upload the manual AMY drum-kit browser to an M5Stack Core Gray.
 upload-drums:

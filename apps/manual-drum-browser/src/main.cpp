@@ -304,4 +304,8 @@ void loop() {
     flushDeferredDiagnostics();
     drawScreen("ready");
   }
+
+  // Yield briefly so SDL, the speaker worker, and the host scheduler can
+  // process their queues instead of making the application loop busy-spin.
+  delay(1);
 }

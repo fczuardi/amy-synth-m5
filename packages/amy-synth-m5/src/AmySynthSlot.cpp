@@ -1,6 +1,6 @@
 #include "AmySynthSlot.h"
 
-#include <AMY-Arduino.h>
+#include "AmyCore.h"
 
 void AmySynthSlot::begin(uint8_t synthId,
                          uint8_t voiceCount,

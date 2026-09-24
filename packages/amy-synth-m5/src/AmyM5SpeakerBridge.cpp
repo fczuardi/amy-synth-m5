@@ -19,7 +19,11 @@ void AmyM5SpeakerBridge::update() {
       break;
     }
 
+#if defined(AMY_NATIVE_SDL)
+    appendAmyBlock(amy_simple_fill_buffer());
+#else
     appendAmyBlock(amy_update());
+#endif
     lastAmyRenderAtUs_ += AMY_BLOCK_INTERVAL_US;
     catchUpBlocks++;
   }

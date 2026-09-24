@@ -8,8 +8,8 @@
     "type": "git",
     "url": "https://github.com/fczuardi/amy-synth-m5.git"
   },
-  "frameworks": "arduino",
-  "platforms": "espressif32",
+  "frameworks": ["arduino", "*"],
+  "platforms": ["espressif32", "native"],
   "headers": [
     "AmyRuntime.h",
     "AmyPitchBend.h",
