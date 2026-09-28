@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/schema/library.json",
   "name": "amy-synth-m5",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "AMY synth helpers and M5Stack Core Gray speaker bridge",
   "keywords": ["amy", "synth", "m5stack", "core-gray", "audio"],
   "repository": {
@@ -17,6 +17,7 @@
     "AmySynthSlot.h",
     "AmyMonophonicInstrumentSink.h",
     "AmyM5SpeakerBridge.h",
+    "AmyM5TriggerOutput.h",
     "AmyAudioActivityGate.h",
     "AmyTriggerOutput.h",
     "TriggerVelocityCurve.h",
@@ -31,7 +32,7 @@
     {
       "owner": "fcz2",
       "name": "step-trigger",
-      "version": "0.1.0"
+      "version": ">=0.1.0"
     },
     {
       "owner": "fcz2",
